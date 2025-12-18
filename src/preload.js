@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('videoHub', {
 
   // Configuration
   updateConfig: (config) => ipcRenderer.invoke('update-config', config),
+  switchProtocol: (protocol) => ipcRenderer.invoke('switch-protocol', protocol),
 
   // Event listeners
   onServerStarted: (callback) => ipcRenderer.on('server-started', (_, port) => callback(port)),

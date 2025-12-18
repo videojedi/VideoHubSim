@@ -1,9 +1,11 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const VideoHubServer = require('./videohub-server');
+const SWP08Server = require('./swp08-server');
 
 let mainWindow;
-let videoHubServer;
+let routerServer;
+let currentProtocol = 'videohub';
 
 function sendToRenderer(channel, ...args) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -22,74 +24,97 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
-    title: 'VideoHub Simulator',
+    title: 'Router Protocol Simulator',
     backgroundColor: '#1a1a2e'
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-  // Open DevTools in development
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
   }
 }
 
-function initializeServer() {
-  videoHubServer = new VideoHubServer({
-    port: 9990,
-    inputs: 12,
-    outputs: 12,
-    modelName: 'Blackmagic Smart Videohub 12x12',
-    friendlyName: 'VideoHub Simulator'
-  });
-
-  // Forward events to renderer
-  videoHubServer.on('started', (port) => {
+function attachServerEvents(server) {
+  server.on('started', (port) => {
     sendToRenderer('server-started', port);
   });
 
-  videoHubServer.on('stopped', () => {
+  server.on('stopped', () => {
     sendToRenderer('server-stopped');
   });
 
-  videoHubServer.on('client-connected', (clientId) => {
+  server.on('client-connected', (clientId) => {
     sendToRenderer('client-connected', clientId);
-    sendToRenderer('state-updated', videoHubServer.getState());
+    sendToRenderer('state-updated', server.getState());
   });
 
-  videoHubServer.on('client-disconnected', (clientId) => {
+  server.on('client-disconnected', (clientId) => {
     sendToRenderer('client-disconnected', clientId);
-    sendToRenderer('state-updated', videoHubServer.getState());
+    sendToRenderer('state-updated', server.getState());
   });
 
-  videoHubServer.on('routing-changed', (changes) => {
+  server.on('routing-changed', (changes) => {
     sendToRenderer('routing-changed', changes);
-    sendToRenderer('state-updated', videoHubServer.getState());
+    sendToRenderer('state-updated', server.getState());
   });
 
-  videoHubServer.on('input-labels-changed', (changes) => {
+  server.on('input-labels-changed', (changes) => {
     sendToRenderer('input-labels-changed', changes);
-    sendToRenderer('state-updated', videoHubServer.getState());
+    sendToRenderer('state-updated', server.getState());
   });
 
-  videoHubServer.on('output-labels-changed', (changes) => {
+  server.on('output-labels-changed', (changes) => {
     sendToRenderer('output-labels-changed', changes);
-    sendToRenderer('state-updated', videoHubServer.getState());
+    sendToRenderer('state-updated', server.getState());
   });
 
-  videoHubServer.on('command-received', (data) => {
+  server.on('command-received', (data) => {
     sendToRenderer('command-received', data);
   });
 
-  videoHubServer.on('error', (err) => {
+  server.on('error', (err) => {
     sendToRenderer('server-error', err.message);
   });
+}
+
+function createServer(protocol, config = {}) {
+  const defaultConfig = {
+    inputs: 12,
+    outputs: 12,
+    ...config
+  };
+
+  if (protocol === 'swp08') {
+    return new SWP08Server({
+      port: config.port || 8910,
+      inputs: defaultConfig.inputs,
+      outputs: defaultConfig.outputs,
+      levels: config.levels || 1,
+      modelName: config.modelName || 'SW-P-08 Router',
+      friendlyName: config.friendlyName || 'SWP08 Simulator'
+    });
+  } else {
+    return new VideoHubServer({
+      port: config.port || 9990,
+      inputs: defaultConfig.inputs,
+      outputs: defaultConfig.outputs,
+      modelName: config.modelName || 'Blackmagic Smart Videohub 12x12',
+      friendlyName: config.friendlyName || 'VideoHub Simulator'
+    });
+  }
+}
+
+function initializeServer(protocol = 'videohub', config = {}) {
+  currentProtocol = protocol;
+  routerServer = createServer(protocol, config);
+  attachServerEvents(routerServer);
 }
 
 function setupIpcHandlers() {
   ipcMain.handle('start-server', async () => {
     try {
-      const port = await videoHubServer.start();
+      const port = await routerServer.start();
       return { success: true, port };
     } catch (err) {
       return { success: false, error: err.message };
@@ -98,7 +123,7 @@ function setupIpcHandlers() {
 
   ipcMain.handle('stop-server', async () => {
     try {
-      await videoHubServer.stop();
+      await routerServer.stop();
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -106,44 +131,96 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle('get-state', () => {
-    return videoHubServer.getState();
+    return {
+      ...routerServer.getState(),
+      protocol: currentProtocol
+    };
   });
 
   ipcMain.handle('set-route', (event, output, input) => {
-    return videoHubServer.setRoute(output, input);
+    return routerServer.setRoute(output, input);
   });
 
   ipcMain.handle('set-input-label', (event, input, label) => {
-    return videoHubServer.setInputLabel(input, label);
+    return routerServer.setInputLabel(input, label);
   });
 
   ipcMain.handle('set-output-label', (event, output, label) => {
-    return videoHubServer.setOutputLabel(output, label);
+    return routerServer.setOutputLabel(output, label);
   });
 
   ipcMain.handle('update-config', async (event, config) => {
-    const wasRunning = videoHubServer.server?.listening;
+    const wasRunning = routerServer.server?.listening;
+    const protocolChanged = config.protocol && config.protocol !== currentProtocol;
 
     if (wasRunning) {
-      await videoHubServer.stop();
+      await routerServer.stop();
     }
 
-    videoHubServer.updateConfig(config);
+    if (protocolChanged) {
+      // Create new server with different protocol
+      routerServer.removeAllListeners();
+      routerServer = createServer(config.protocol, config);
+      attachServerEvents(routerServer);
+      currentProtocol = config.protocol;
+    } else {
+      routerServer.updateConfig(config);
+    }
 
     if (wasRunning) {
       try {
-        await videoHubServer.start();
+        await routerServer.start();
       } catch (err) {
         return { success: false, error: err.message };
       }
     }
 
-    return { success: true, state: videoHubServer.getState() };
+    return {
+      success: true,
+      state: {
+        ...routerServer.getState(),
+        protocol: currentProtocol
+      }
+    };
+  });
+
+  ipcMain.handle('switch-protocol', async (event, protocol) => {
+    const wasRunning = routerServer.server?.listening;
+
+    if (wasRunning) {
+      await routerServer.stop();
+    }
+
+    const oldState = routerServer.getState();
+    routerServer.removeAllListeners();
+
+    routerServer = createServer(protocol, {
+      inputs: oldState.inputs,
+      outputs: oldState.outputs
+    });
+    attachServerEvents(routerServer);
+    currentProtocol = protocol;
+
+    if (wasRunning) {
+      try {
+        await routerServer.start();
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+
+    return {
+      success: true,
+      state: {
+        ...routerServer.getState(),
+        protocol: currentProtocol
+      }
+    };
   });
 }
 
 app.whenReady().then(() => {
-  initializeServer();
+  initializeServer('videohub');
   setupIpcHandlers();
   createWindow();
 
@@ -155,8 +232,8 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', async () => {
-  if (videoHubServer) {
-    await videoHubServer.stop();
+  if (routerServer) {
+    await routerServer.stop();
   }
   if (process.platform !== 'darwin') {
     app.quit();
@@ -164,7 +241,7 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('before-quit', async () => {
-  if (videoHubServer) {
-    await videoHubServer.stop();
+  if (routerServer) {
+    await routerServer.stop();
   }
 });

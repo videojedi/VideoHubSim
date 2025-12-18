@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
-  <title>VideoHub Simulator</title>
+  <title>Router Protocol Simulator</title>
   <style>
     * {
       margin: 0;
@@ -382,7 +382,7 @@
 <body>
   <div class="app-container">
     <header class="header">
-      <h1>VideoHub Simulator</h1>
+      <h1 id="appTitle">Router Protocol Simulator</h1>
       <div class="header-controls">
         <div class="status-indicator">
           <div class="status-dot" id="statusDot"></div>
@@ -396,8 +396,19 @@
     <div class="main-content">
       <aside class="sidebar">
         <div class="sidebar-section">
-          <h3>Configuration</h3>
+          <h3>Protocol</h3>
           <div class="config-group">
+            <label>Router Protocol</label>
+            <select id="protocolSelect">
+              <option value="videohub">Blackmagic VideoHub</option>
+              <option value="swp08">SW-P-08 (Probel/GV)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Configuration</h3>
+          <div class="config-group" id="modelGroup">
             <label>Model Name</label>
             <select id="modelSelect">
               <option value="Blackmagic Smart Videohub 12x12">Smart Videohub 12x12</option>
@@ -482,10 +493,12 @@
       routing: {},
       inputLabels: {},
       outputLabels: {},
-      outputLocks: {}
+      outputLocks: {},
+      protocol: 'videohub'
     };
     let connectedClients = [];
     let routeChangeCount = 0;
+    let currentProtocol = 'videohub';
 
     // DOM Elements
     const startBtn = document.getElementById('startBtn');
@@ -498,6 +511,9 @@
     const clientList = document.getElementById('clientList');
     const logPanel = document.getElementById('logPanel');
     const applyConfigBtn = document.getElementById('applyConfig');
+    const protocolSelect = document.getElementById('protocolSelect');
+    const modelGroup = document.getElementById('modelGroup');
+    const appTitle = document.getElementById('appTitle');
 
     // Logging
     function log(message, type = 'info') {
@@ -636,6 +652,24 @@
       renderOutputLabels();
     }
 
+    function updateProtocolUI(protocol) {
+      currentProtocol = protocol;
+      protocolSelect.value = protocol;
+
+      // Update UI based on protocol
+      if (protocol === 'videohub') {
+        appTitle.textContent = 'VideoHub Simulator';
+        modelGroup.style.display = 'block';
+        document.getElementById('portNumber').value = '9990';
+        document.getElementById('friendlyName').value = 'VideoHub Simulator';
+      } else if (protocol === 'swp08') {
+        appTitle.textContent = 'SW-P-08 Simulator';
+        modelGroup.style.display = 'none';
+        document.getElementById('portNumber').value = '8910';
+        document.getElementById('friendlyName').value = 'SWP08 Simulator';
+      }
+    }
+
     // Tab handling
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -674,6 +708,7 @@
 
     applyConfigBtn.addEventListener('click', async () => {
       const config = {
+        protocol: protocolSelect.value,
         modelName: document.getElementById('modelSelect').value,
         friendlyName: document.getElementById('friendlyName').value,
         inputs: parseInt(document.getElementById('inputCount').value),
@@ -684,10 +719,29 @@
       const result = await window.videoHub.updateConfig(config);
       if (result.success) {
         state = result.state;
+        if (state.protocol) {
+          updateProtocolUI(state.protocol);
+        }
         renderAll();
         log('Configuration updated', 'success');
       } else {
         log(`Failed to update configuration: ${result.error}`, 'error');
+      }
+    });
+
+    protocolSelect.addEventListener('change', async () => {
+      const newProtocol = protocolSelect.value;
+      if (newProtocol !== currentProtocol) {
+        const result = await window.videoHub.switchProtocol(newProtocol);
+        if (result.success) {
+          state = result.state;
+          updateProtocolUI(newProtocol);
+          renderAll();
+          log(`Switched to ${newProtocol === 'videohub' ? 'VideoHub' : 'SW-P-08'} protocol`, 'success');
+        } else {
+          log(`Failed to switch protocol: ${result.error}`, 'error');
+          protocolSelect.value = currentProtocol;
+        }
       }
     });
 
@@ -737,8 +791,11 @@
     // Initialize
     async function init() {
       state = await window.videoHub.getState();
+      if (state.protocol) {
+        updateProtocolUI(state.protocol);
+      }
       renderAll();
-      log('VideoHub Simulator initialized', 'success');
+      log('Router Protocol Simulator initialized', 'success');
     }
 
     init();

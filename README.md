@@ -1,19 +1,33 @@
-# VideoHub Simulator
+# Router Protocol Simulator
 
-A cross-platform Electron application that simulates a Blackmagic VideoHub router. Perfect for testing VideoHub control software, developing integrations, or training purposes without requiring physical hardware.
+A cross-platform Electron application that simulates broadcast video routers. Supports multiple protocols including Blackmagic VideoHub and SW-P-08 (Probel/Grass Valley). Perfect for testing router control software, developing integrations, or training purposes without requiring physical hardware.
 
-![VideoHub Simulator Screenshot](docs/screenshot.png)
+![Router Protocol Simulator Screenshot](docs/screenshot.png)
 
 ## Features
 
-- **Full VideoHub Protocol Support** - Implements Blackmagic's Ethernet Protocol v2.8
+- **Multiple Protocol Support** - Switch between VideoHub and SW-P-08 protocols
 - **Configurable Router Size** - Simulate routers from 12x12 up to 288x288
-- **Multiple Model Presets** - Smart Videohub 12x12, 20x20, 40x40, Universal Videohub 72/288
 - **Real-time Routing Matrix** - Interactive UI to view and change routes
 - **Editable Labels** - Customize input and output names
 - **Pre-populated Labels** - Comes with TV station/edit suite example names
 - **Multi-client Support** - Multiple control applications can connect simultaneously
 - **Live Activity Log** - Monitor all protocol commands and client connections
+
+## Supported Protocols
+
+### Blackmagic VideoHub
+- TCP port 9990 (default)
+- Text-based protocol v2.8
+- Full support for routing, labels, and locks
+- Compatible with all VideoHub control software
+
+### SW-P-08 (Probel/Grass Valley)
+- TCP port 8910 (default)
+- Binary protocol with DLE/STX framing
+- Crosspoint routing and interrogation
+- Source/destination label queries
+- Extended commands for large routers (16-bit addressing)
 
 ## Installation
 
@@ -26,8 +40,8 @@ A cross-platform Electron application that simulates a Blackmagic VideoHub route
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/videohub-simulator.git
-cd videohub-simulator
+git clone https://github.com/yourusername/router-protocol-simulator.git
+cd router-protocol-simulator
 
 # Install dependencies
 npm install
@@ -38,22 +52,25 @@ npm start
 
 ## Usage
 
-1. **Start the Application** - Run `npm start`
-2. **Start the Server** - Click the "Start Server" button to begin listening on port 9990
-3. **Connect Clients** - Point your VideoHub control software to `localhost:9990` (or your machine's IP address)
-4. **Control Routes** - Use either the simulator UI or connected clients to change routes
+1. **Select Protocol** - Choose VideoHub or SW-P-08 from the Protocol dropdown
+2. **Configure Router** - Set the number of inputs/outputs and other options
+3. **Start the Server** - Click "Start Server" to begin listening
+4. **Connect Clients** - Point your control software to the appropriate port
 
 ### Configuration Options
 
 | Setting | Description |
 |---------|-------------|
-| Model Name | Select a VideoHub model preset |
+| Protocol | VideoHub or SW-P-08 |
+| Model Name | Device model reported to clients (VideoHub only) |
 | Friendly Name | Custom name reported to clients |
 | Inputs | Number of input ports (1-288) |
 | Outputs | Number of output ports (1-288) |
-| TCP Port | Server port (default: 9990) |
+| TCP Port | Server port (VideoHub: 9990, SW-P-08: 8910) |
 
-## Protocol Support
+## Protocol Details
+
+### VideoHub Protocol
 
 The simulator implements the Blackmagic Videohub Ethernet Protocol including:
 
@@ -65,8 +82,7 @@ The simulator implements the Blackmagic Videohub Ethernet Protocol including:
 - `VIDEO OUTPUT LOCKS` - Port locking (O/U/L states)
 - `PING` / `ACK` - Keep-alive support
 
-### Example Protocol Session
-
+Example session:
 ```
 PROTOCOL PREAMBLE:
 Version: 2.8
@@ -81,22 +97,38 @@ INPUT LABELS:
 0 CAM 1
 1 CAM 2
 ...
-
-VIDEO OUTPUT ROUTING:
-0 0
-1 1
-...
 ```
+
+### SW-P-08 Protocol
+
+The simulator implements the SW-P-08 router control protocol including:
+
+- **Message Framing** - DLE/STX start, checksum validation
+- **Crosspoint Connect** (0x02) - Route source to destination
+- **Crosspoint Interrogate** (0x01) - Query current route
+- **Crosspoint Tally** (0x03) - Route change notifications
+- **Tally Dump** (0x21/0x22) - Bulk routing table query
+- **Source Names** (0x61/0x62) - Input label query
+- **Destination Names** (0x63/0x64) - Output label query
+- **Extended Commands** (0x04-0x07) - 16-bit addressing for large routers
 
 ## Compatible Software
 
-This simulator works with any software that supports the Blackmagic VideoHub protocol:
+This simulator works with router control software including:
 
+**VideoHub Protocol:**
 - Bitfocus Companion
 - vMix
 - Blackmagic Videohub Control
 - Ross DashBoard
-- Custom integrations
+
+**SW-P-08 Protocol:**
+- Bitfocus Companion
+- Ross Ultrix/Carbonite
+- Grass Valley NV Series panels
+- Lawo VSM
+- Calrec consoles
+- Many broadcast automation systems
 
 ## Development
 
@@ -108,15 +140,16 @@ npm run dev
 ### Project Structure
 
 ```
-videohub-simulator/
+router-protocol-simulator/
 ├── package.json
 ├── README.md
 ├── .gitignore
 └── src/
-    ├── main.js           # Electron main process
-    ├── preload.js        # Preload script for secure IPC
-    ├── index.html        # UI and renderer process
-    └── videohub-server.js # TCP server with protocol implementation
+    ├── main.js             # Electron main process
+    ├── preload.js          # Preload script for secure IPC
+    ├── index.html          # UI and renderer process
+    ├── videohub-server.js  # VideoHub protocol implementation
+    └── swp08-server.js     # SW-P-08 protocol implementation
 ```
 
 ## Troubleshooting
@@ -131,7 +164,7 @@ unset ELECTRON_RUN_AS_NODE && npm start
 
 ### Port Already in Use
 
-If port 9990 is already in use, either:
+If the port is already in use, either:
 - Stop the other application using the port
 - Change the port in the simulator's configuration panel
 
@@ -139,10 +172,17 @@ If port 9990 is already in use, either:
 
 Ensure the server is started (green status indicator) before connecting clients.
 
+### SW-P-08 Connection Issues
+
+- Ensure your client is configured for TCP (not serial)
+- Default port is 8910
+- Some clients may require specifying matrix/level 0
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- Protocol specification based on [Blackmagic Videohub Developer Information](https://documents.blackmagicdesign.com/DeveloperManuals/VideohubDeveloperInformation.pdf)
+- VideoHub protocol based on [Blackmagic Videohub Developer Information](https://documents.blackmagicdesign.com/DeveloperManuals/VideohubDeveloperInformation.pdf)
+- SW-P-08 protocol based on [Grass Valley SW-P-88 Router Control Protocols](https://wwwapps.grassvalley.com/docs/Manuals/sam/Protocols%20and%20MIBs/Router%20Control%20Protocols%20SW-P-88%20Issue%204b.pdf)
