@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+  <title>VideoHub Simulator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 15px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ff4757;
+      transition: background 0.3s;
+    }
+
+    .status-dot.active {
+      background: #2ed573;
+      box-shadow: 0 0 10px #2ed573;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #4a69bd;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #6a89cc;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Main content */
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: rgba(0, 0, 0, 0.2);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-section h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 15px;
+    }
+
+    .config-group {
+      margin-bottom: 15px;
+    }
+
+    .config-group label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 5px;
+      color: #aaa;
+    }
+
+    .config-group input, .config-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .config-group input:focus, .config-group select:focus {
+      outline: none;
+      border-color: #4a69bd;
+    }
+
+    .client-list {
+      list-style: none;
+    }
+
+    .client-list li {
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+      font-family: monospace;
+    }
+
+    .no-clients {
+      color: #666;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    /* Router Matrix */
+    .router-panel {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+    }
+
+    .router-panel h2 {
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .matrix-container {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      overflow: auto;
+    }
+
+    .routing-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .routing-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .routing-row:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .output-label {
+      width: 150px;
+      font-weight: 500;
+      color: #ff6b6b;
+    }
+
+    .routing-arrow {
+      color: #666;
+      font-size: 1.2rem;
+    }
+
+    .input-select {
+      flex: 1;
+      max-width: 250px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .input-select:focus {
+      outline: none;
+      border-color: #4a69bd;
+    }
+
+    .input-label-display {
+      flex: 1;
+      color: #2ed573;
+      font-size: 0.9rem;
+    }
+
+    /* Labels Panel */
+    .labels-panel {
+      display: none;
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+    }
+
+    .labels-panel.active {
+      display: block;
+    }
+
+    .labels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .label-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 15px;
+    }
+
+    .label-card h4 {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .label-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .label-input:focus {
+      outline: none;
+      border-color: #4a69bd;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: none;
+      border-radius: 6px 6px 0 0;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .tab.active {
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+    }
+
+    /* Log Panel */
+    .log-panel {
+      height: 200px;
+      background: rgba(0, 0, 0, 0.4);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      overflow-y: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.8rem;
+      padding: 10px;
+    }
+
+    .log-entry {
+      padding: 3px 8px;
+      border-radius: 3px;
+      margin-bottom: 2px;
+    }
+
+    .log-entry.info {
+      color: #74b9ff;
+    }
+
+    .log-entry.success {
+      color: #2ed573;
+    }
+
+    .log-entry.warning {
+      color: #ffa502;
+    }
+
+    .log-entry.error {
+      color: #ff4757;
+    }
+
+    .log-entry .timestamp {
+      color: #666;
+      margin-right: 10px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <h1>VideoHub Simulator</h1>
+      <div class="header-controls">
+        <div class="status-indicator">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">Stopped</span>
+        </div>
+        <button class="btn btn-primary" id="startBtn">Start Server</button>
+        <button class="btn btn-danger" id="stopBtn" disabled>Stop Server</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3>Configuration</h3>
+          <div class="config-group">
+            <label>Model Name</label>
+            <select id="modelSelect">
+              <option value="Blackmagic Smart Videohub 12x12">Smart Videohub 12x12</option>
+              <option value="Blackmagic Smart Videohub 20x20">Smart Videohub 20x20</option>
+              <option value="Blackmagic Smart Videohub 40x40">Smart Videohub 40x40</option>
+              <option value="Blackmagic Universal Videohub 72">Universal Videohub 72</option>
+              <option value="Blackmagic Universal Videohub 288">Universal Videohub 288</option>
+            </select>
+          </div>
+          <div class="config-group">
+            <label>Friendly Name</label>
+            <input type="text" id="friendlyName" value="VideoHub Simulator">
+          </div>
+          <div class="config-group">
+            <label>Inputs</label>
+            <input type="number" id="inputCount" value="12" min="1" max="288">
+          </div>
+          <div class="config-group">
+            <label>Outputs</label>
+            <input type="number" id="outputCount" value="12" min="1" max="288">
+          </div>
+          <div class="config-group">
+            <label>TCP Port</label>
+            <input type="number" id="portNumber" value="9990" min="1" max="65535">
+          </div>
+          <button class="btn btn-primary" id="applyConfig" style="width: 100%; margin-top: 10px;">Apply Configuration</button>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Connected Clients</h3>
+          <div id="clientList">
+            <p class="no-clients">No clients connected</p>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Statistics</h3>
+          <div class="config-group">
+            <label>Total Routes Changed</label>
+            <span id="routeCount">0</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="router-panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="routing">Routing Matrix</button>
+          <button class="tab" data-tab="inputs">Input Labels</button>
+          <button class="tab" data-tab="outputs">Output Labels</button>
+        </div>
+
+        <div id="routingPanel" class="matrix-container">
+          <div class="routing-grid" id="routingGrid">
+            <!-- Routing rows will be generated here -->
+          </div>
+        </div>
+
+        <div id="inputsPanel" class="labels-panel">
+          <div class="labels-grid" id="inputLabelsGrid">
+            <!-- Input label cards will be generated here -->
+          </div>
+        </div>
+
+        <div id="outputsPanel" class="labels-panel">
+          <div class="labels-grid" id="outputLabelsGrid">
+            <!-- Output label cards will be generated here -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div class="log-panel" id="logPanel">
+      <!-- Log entries will be added here -->
+    </div>
+  </div>
+
+  <script>
+    // State
+    let state = {
+      inputs: 12,
+      outputs: 12,
+      routing: {},
+      inputLabels: {},
+      outputLabels: {},
+      outputLocks: {}
+    };
+    let connectedClients = [];
+    let routeChangeCount = 0;
+
+    // DOM Elements
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const routingGrid = document.getElementById('routingGrid');
+    const inputLabelsGrid = document.getElementById('inputLabelsGrid');
+    const outputLabelsGrid = document.getElementById('outputLabelsGrid');
+    const clientList = document.getElementById('clientList');
+    const logPanel = document.getElementById('logPanel');
+    const applyConfigBtn = document.getElementById('applyConfig');
+
+    // Logging
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="timestamp">[${time}]</span>${message}`;
+      logPanel.appendChild(entry);
+      logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    // UI Updates
+    function updateServerStatus(running, port) {
+      if (running) {
+        statusDot.classList.add('active');
+        statusText.textContent = `Running on port ${port}`;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+      } else {
+        statusDot.classList.remove('active');
+        statusText.textContent = 'Stopped';
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    }
+
+    function updateClientList() {
+      if (connectedClients.length === 0) {
+        clientList.innerHTML = '<p class="no-clients">No clients connected</p>';
+      } else {
+        clientList.innerHTML = '<ul class="client-list">' +
+          connectedClients.map(c => `<li>${c}</li>`).join('') +
+          '</ul>';
+      }
+    }
+
+    function renderRoutingGrid() {
+      routingGrid.innerHTML = '';
+
+      for (let o = 0; o < state.outputs; o++) {
+        const row = document.createElement('div');
+        row.className = 'routing-row';
+
+        const outputLabel = document.createElement('div');
+        outputLabel.className = 'output-label';
+        outputLabel.textContent = state.outputLabels[o] || `Output ${o + 1}`;
+
+        const arrow = document.createElement('div');
+        arrow.className = 'routing-arrow';
+        arrow.textContent = '←';
+
+        const select = document.createElement('select');
+        select.className = 'input-select';
+        select.dataset.output = o;
+
+        for (let i = 0; i < state.inputs; i++) {
+          const option = document.createElement('option');
+          option.value = i;
+          option.textContent = state.inputLabels[i] || `Input ${i + 1}`;
+          if (state.routing[o] === i) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        }
+
+        select.addEventListener('change', async (e) => {
+          const output = parseInt(e.target.dataset.output);
+          const input = parseInt(e.target.value);
+          await window.videoHub.setRoute(output, input);
+        });
+
+        row.appendChild(outputLabel);
+        row.appendChild(arrow);
+        row.appendChild(select);
+        routingGrid.appendChild(row);
+      }
+    }
+
+    function renderInputLabels() {
+      inputLabelsGrid.innerHTML = '';
+
+      for (let i = 0; i < state.inputs; i++) {
+        const card = document.createElement('div');
+        card.className = 'label-card';
+
+        const title = document.createElement('h4');
+        title.textContent = `Input ${i + 1}`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'label-input';
+        input.value = state.inputLabels[i] || `Input ${i + 1}`;
+        input.dataset.input = i;
+
+        input.addEventListener('change', async (e) => {
+          const inputIndex = parseInt(e.target.dataset.input);
+          await window.videoHub.setInputLabel(inputIndex, e.target.value);
+        });
+
+        card.appendChild(title);
+        card.appendChild(input);
+        inputLabelsGrid.appendChild(card);
+      }
+    }
+
+    function renderOutputLabels() {
+      outputLabelsGrid.innerHTML = '';
+
+      for (let o = 0; o < state.outputs; o++) {
+        const card = document.createElement('div');
+        card.className = 'label-card';
+
+        const title = document.createElement('h4');
+        title.textContent = `Output ${o + 1}`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'label-input';
+        input.value = state.outputLabels[o] || `Output ${o + 1}`;
+        input.dataset.output = o;
+
+        input.addEventListener('change', async (e) => {
+          const outputIndex = parseInt(e.target.dataset.output);
+          await window.videoHub.setOutputLabel(outputIndex, e.target.value);
+        });
+
+        card.appendChild(title);
+        card.appendChild(input);
+        outputLabelsGrid.appendChild(card);
+      }
+    }
+
+    function renderAll() {
+      renderRoutingGrid();
+      renderInputLabels();
+      renderOutputLabels();
+    }
+
+    // Tab handling
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        const tabName = tab.dataset.tab;
+        document.getElementById('routingPanel').style.display = tabName === 'routing' ? 'block' : 'none';
+        document.getElementById('inputsPanel').classList.toggle('active', tabName === 'inputs');
+        document.getElementById('outputsPanel').classList.toggle('active', tabName === 'outputs');
+      });
+    });
+
+    // Event Handlers
+    startBtn.addEventListener('click', async () => {
+      const result = await window.videoHub.startServer();
+      if (result.success) {
+        updateServerStatus(true, result.port);
+        log(`Server started on port ${result.port}`, 'success');
+      } else {
+        log(`Failed to start server: ${result.error}`, 'error');
+      }
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      const result = await window.videoHub.stopServer();
+      if (result.success) {
+        updateServerStatus(false);
+        connectedClients = [];
+        updateClientList();
+        log('Server stopped', 'warning');
+      } else {
+        log(`Failed to stop server: ${result.error}`, 'error');
+      }
+    });
+
+    applyConfigBtn.addEventListener('click', async () => {
+      const config = {
+        modelName: document.getElementById('modelSelect').value,
+        friendlyName: document.getElementById('friendlyName').value,
+        inputs: parseInt(document.getElementById('inputCount').value),
+        outputs: parseInt(document.getElementById('outputCount').value),
+        port: parseInt(document.getElementById('portNumber').value)
+      };
+
+      const result = await window.videoHub.updateConfig(config);
+      if (result.success) {
+        state = result.state;
+        renderAll();
+        log('Configuration updated', 'success');
+      } else {
+        log(`Failed to update configuration: ${result.error}`, 'error');
+      }
+    });
+
+    // IPC Event Listeners
+    window.videoHub.onServerStarted((port) => {
+      updateServerStatus(true, port);
+    });
+
+    window.videoHub.onServerStopped(() => {
+      updateServerStatus(false);
+    });
+
+    window.videoHub.onServerError((error) => {
+      log(`Server error: ${error}`, 'error');
+    });
+
+    window.videoHub.onClientConnected((clientId) => {
+      connectedClients.push(clientId);
+      updateClientList();
+      log(`Client connected: ${clientId}`, 'success');
+    });
+
+    window.videoHub.onClientDisconnected((clientId) => {
+      connectedClients = connectedClients.filter(c => c !== clientId);
+      updateClientList();
+      log(`Client disconnected: ${clientId}`, 'warning');
+    });
+
+    window.videoHub.onRoutingChanged((changes) => {
+      routeChangeCount += changes.length;
+      document.getElementById('routeCount').textContent = routeChangeCount;
+      changes.forEach(c => {
+        log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}`, 'info');
+      });
+    });
+
+    window.videoHub.onStateUpdated((newState) => {
+      state = newState;
+      renderAll();
+    });
+
+    window.videoHub.onCommandReceived((data) => {
+      const cmdPreview = data.command.split('\n')[0];
+      log(`Command from ${data.clientId}: ${cmdPreview}`, 'info');
+    });
+
+    // Initialize
+    async function init() {
+      state = await window.videoHub.getState();
+      renderAll();
+      log('VideoHub Simulator initialized', 'success');
+    }
+
+    init();
+  </script>
+</body>
+</html>

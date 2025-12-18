@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(cat:*)",
+      "Bash(node:*)",
+      "Bash(./node_modules/.bin/electron:*)",
+      "Bash(npx electron:*)",
+      "Bash(\"./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron\" --version)",
+      "Bash(npm install:*)",
+      "Bash(\"./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron\" test-electron.js)",
+      "Bash(\"./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron\" --help)",
+      "Bash(unzip:*)",
+      "Bash(otool:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill:*)",
+      "Bash(xattr:*)",
+      "Bash(codesign:*)",
+      "Bash(npm start)",
+      "Bash(npx electron@28 .)",
+      "Bash(env)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

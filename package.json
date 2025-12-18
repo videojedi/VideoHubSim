@@ -1,0 +1,22 @@
+{
+  "name": "videohub-simulator",
+  "version": "1.0.0",
+  "description": "Blackmagic VideoHub Router Simulator",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "unset ELECTRON_RUN_AS_NODE && electron .",
+    "dev": "unset ELECTRON_RUN_AS_NODE && electron . --dev"
+  },
+  "keywords": [
+    "blackmagic",
+    "videohub",
+    "router",
+    "simulator",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.3.3"
+  }
+}
