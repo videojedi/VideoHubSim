@@ -321,6 +321,44 @@
       color: #fff;
     }
 
+    /* Level Selector */
+    .level-selector {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+    }
+
+    .level-selector.visible {
+      display: flex;
+    }
+
+    .level-selector label {
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    .level-selector select {
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .level-indicator {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: #74b9ff;
+      background: rgba(116, 185, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
     /* Log Panel */
     .log-panel {
       height: 200px;
@@ -434,6 +472,16 @@
             <label>TCP Port</label>
             <input type="number" id="portNumber" value="9990" min="1" max="65535">
           </div>
+          <div class="config-group" id="levelsGroup" style="display: none;">
+            <label>Matrix Levels</label>
+            <input type="number" id="levelCount" value="1" min="1" max="16">
+          </div>
+          <div class="config-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="autoStart" style="width: auto;">
+              Auto-start server on launch
+            </label>
+          </div>
           <button class="btn btn-primary" id="applyConfig" style="width: 100%; margin-top: 10px;">Apply Configuration</button>
         </div>
 
@@ -461,6 +509,11 @@
         </div>
 
         <div id="routingPanel" class="matrix-container">
+          <div class="level-selector" id="levelSelector">
+            <label>Matrix Level:</label>
+            <select id="levelSelect"></select>
+            <span class="level-indicator" id="levelIndicator">Level 1: Video</span>
+          </div>
           <div class="routing-grid" id="routingGrid">
             <!-- Routing rows will be generated here -->
           </div>
@@ -490,15 +543,19 @@
     let state = {
       inputs: 12,
       outputs: 12,
+      levels: 1,
       routing: {},
+      allRouting: {},
       inputLabels: {},
       outputLabels: {},
       outputLocks: {},
+      levelNames: {},
       protocol: 'videohub'
     };
     let connectedClients = [];
     let routeChangeCount = 0;
     let currentProtocol = 'videohub';
+    let currentLevel = 0;
 
     // DOM Elements
     const startBtn = document.getElementById('startBtn');
@@ -514,6 +571,10 @@
     const protocolSelect = document.getElementById('protocolSelect');
     const modelGroup = document.getElementById('modelGroup');
     const appTitle = document.getElementById('appTitle');
+    const levelSelector = document.getElementById('levelSelector');
+    const levelSelect = document.getElementById('levelSelect');
+    const levelIndicator = document.getElementById('levelIndicator');
+    const levelsGroup = document.getElementById('levelsGroup');
 
     // Logging
     function log(message, type = 'info') {
@@ -550,8 +611,42 @@
       }
     }
 
+    function renderLevelSelector() {
+      // Only show for SW-P-08 with multiple levels
+      const showLevels = currentProtocol === 'swp08' && state.levels > 1;
+      levelSelector.classList.toggle('visible', showLevels);
+
+      if (showLevels) {
+        levelSelect.innerHTML = '';
+        for (let l = 0; l < state.levels; l++) {
+          const option = document.createElement('option');
+          option.value = l;
+          option.textContent = state.levelNames?.[l] || `Level ${l + 1}`;
+          if (l === currentLevel) {
+            option.selected = true;
+          }
+          levelSelect.appendChild(option);
+        }
+        updateLevelIndicator();
+      }
+    }
+
+    function updateLevelIndicator() {
+      const levelName = state.levelNames?.[currentLevel] || `Level ${currentLevel + 1}`;
+      levelIndicator.textContent = `Level ${currentLevel + 1}: ${levelName}`;
+    }
+
+    function getCurrentRouting() {
+      // For SW-P-08, use the routing for the current level
+      if (currentProtocol === 'swp08' && state.allRouting && state.allRouting[currentLevel]) {
+        return state.allRouting[currentLevel];
+      }
+      return state.routing;
+    }
+
     function renderRoutingGrid() {
       routingGrid.innerHTML = '';
+      const routing = getCurrentRouting();
 
       for (let o = 0; o < state.outputs; o++) {
         const row = document.createElement('div');
@@ -573,7 +668,7 @@
           const option = document.createElement('option');
           option.value = i;
           option.textContent = state.inputLabels[i] || `Input ${i + 1}`;
-          if (state.routing[o] === i) {
+          if (routing[o] === i) {
             option.selected = true;
           }
           select.appendChild(option);
@@ -582,7 +677,7 @@
         select.addEventListener('change', async (e) => {
           const output = parseInt(e.target.dataset.output);
           const input = parseInt(e.target.value);
-          await window.videoHub.setRoute(output, input);
+          await window.videoHub.setRoute(output, input, currentLevel);
         });
 
         row.appendChild(outputLabel);
@@ -647,6 +742,7 @@
     }
 
     function renderAll() {
+      renderLevelSelector();
       renderRoutingGrid();
       renderInputLabels();
       renderOutputLabels();
@@ -660,13 +756,18 @@
       if (protocol === 'videohub') {
         appTitle.textContent = 'VideoHub Simulator';
         modelGroup.style.display = 'block';
+        levelsGroup.style.display = 'none';
+        levelSelector.classList.remove('visible');
         document.getElementById('portNumber').value = '9990';
         document.getElementById('friendlyName').value = 'VideoHub Simulator';
       } else if (protocol === 'swp08') {
         appTitle.textContent = 'SW-P-08 Simulator';
         modelGroup.style.display = 'none';
+        levelsGroup.style.display = 'block';
         document.getElementById('portNumber').value = '8910';
         document.getElementById('friendlyName').value = 'SWP08 Simulator';
+        document.getElementById('levelCount').value = state.levels || 1;
+        renderLevelSelector();
       }
     }
 
@@ -713,7 +814,8 @@
         friendlyName: document.getElementById('friendlyName').value,
         inputs: parseInt(document.getElementById('inputCount').value),
         outputs: parseInt(document.getElementById('outputCount').value),
-        port: parseInt(document.getElementById('portNumber').value)
+        port: parseInt(document.getElementById('portNumber').value),
+        levels: parseInt(document.getElementById('levelCount').value) || 1
       };
 
       const result = await window.videoHub.updateConfig(config);
@@ -745,6 +847,14 @@
       }
     });
 
+    levelSelect.addEventListener('change', () => {
+      currentLevel = parseInt(levelSelect.value);
+      updateLevelIndicator();
+      renderRoutingGrid();
+      const levelName = state.levelNames?.[currentLevel] || `Level ${currentLevel + 1}`;
+      log(`Switched to level ${currentLevel + 1}: ${levelName}`, 'info');
+    });
+
     // IPC Event Listeners
     window.videoHub.onServerStarted((port) => {
       updateServerStatus(true, port);
@@ -774,7 +884,10 @@
       routeChangeCount += changes.length;
       document.getElementById('routeCount').textContent = routeChangeCount;
       changes.forEach(c => {
-        log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}`, 'info');
+        const levelInfo = (currentProtocol === 'swp08' && c.level !== undefined)
+          ? ` [Level ${c.level + 1}]`
+          : '';
+        log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}${levelInfo}`, 'info');
       });
     });
 
@@ -790,6 +903,29 @@
 
     // Initialize
     async function init() {
+      // Load saved settings
+      const savedSettings = await window.videoHub.getSettings();
+
+      // Apply saved settings to UI
+      if (savedSettings) {
+        document.getElementById('inputCount').value = savedSettings.inputs || 12;
+        document.getElementById('outputCount').value = savedSettings.outputs || 12;
+        document.getElementById('portNumber').value = savedSettings.port || 9990;
+        document.getElementById('levelCount').value = savedSettings.levels || 1;
+        document.getElementById('friendlyName').value = savedSettings.friendlyName || 'VideoHub Simulator';
+        document.getElementById('autoStart').checked = savedSettings.autoStart || false;
+
+        if (savedSettings.modelName) {
+          const modelSelect = document.getElementById('modelSelect');
+          for (let option of modelSelect.options) {
+            if (option.value === savedSettings.modelName) {
+              option.selected = true;
+              break;
+            }
+          }
+        }
+      }
+
       state = await window.videoHub.getState();
       if (state.protocol) {
         updateProtocolUI(state.protocol);
@@ -797,6 +933,12 @@
       renderAll();
       log('Router Protocol Simulator initialized', 'success');
     }
+
+    // Auto-start checkbox handler
+    document.getElementById('autoStart').addEventListener('change', async (e) => {
+      await window.videoHub.setAutoStart(e.target.checked);
+      log(`Auto-start ${e.target.checked ? 'enabled' : 'disabled'}`, 'info');
+    });
 
     init();
   </script>

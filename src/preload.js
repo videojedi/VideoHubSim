@@ -7,13 +7,17 @@ contextBridge.exposeInMainWorld('videoHub', {
   getState: () => ipcRenderer.invoke('get-state'),
 
   // Routing and labels
-  setRoute: (output, input) => ipcRenderer.invoke('set-route', output, input),
+  setRoute: (output, input, level = 0) => ipcRenderer.invoke('set-route', output, input, level),
   setInputLabel: (input, label) => ipcRenderer.invoke('set-input-label', input, label),
   setOutputLabel: (output, label) => ipcRenderer.invoke('set-output-label', output, label),
+  getRoutingForLevel: (level) => ipcRenderer.invoke('get-routing-for-level', level),
+  setLevelName: (level, name) => ipcRenderer.invoke('set-level-name', level, name),
 
   // Configuration
   updateConfig: (config) => ipcRenderer.invoke('update-config', config),
   switchProtocol: (protocol) => ipcRenderer.invoke('switch-protocol', protocol),
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
 
   // Event listeners
   onServerStarted: (callback) => ipcRenderer.on('server-started', (_, port) => callback(port)),

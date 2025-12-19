@@ -1,11 +1,64 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const VideoHubServer = require('./videohub-server');
 const SWP08Server = require('./swp08-server');
 
 let mainWindow;
 let routerServer;
 let currentProtocol = 'videohub';
+let settings = {};
+
+// Settings file path
+function getSettingsPath() {
+  return path.join(app.getPath('userData'), 'settings.json');
+}
+
+// Load settings from disk
+function loadSettings() {
+  try {
+    const settingsPath = getSettingsPath();
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, 'utf8');
+      settings = JSON.parse(data);
+      return settings;
+    }
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+  }
+  // Default settings
+  settings = {
+    protocol: 'videohub',
+    inputs: 12,
+    outputs: 12,
+    levels: 1,
+    port: 9990,
+    modelName: 'Blackmagic Smart Videohub 12x12',
+    friendlyName: 'VideoHub Simulator',
+    autoStart: false
+  };
+  return settings;
+}
+
+// Save settings to disk
+function saveSettings() {
+  try {
+    const settingsPath = getSettingsPath();
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  } catch (err) {
+    console.error('Failed to save settings:', err);
+  }
+}
+
+// Update settings from current state
+function updateSettings(config) {
+  settings = {
+    ...settings,
+    ...config,
+    protocol: currentProtocol
+  };
+  saveSettings();
+}
 
 function sendToRenderer(channel, ...args) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -137,8 +190,22 @@ function setupIpcHandlers() {
     };
   });
 
-  ipcMain.handle('set-route', (event, output, input) => {
-    return routerServer.setRoute(output, input);
+  ipcMain.handle('set-route', (event, output, input, level = 0) => {
+    return routerServer.setRoute(output, input, level);
+  });
+
+  ipcMain.handle('get-routing-for-level', (event, level) => {
+    if (currentProtocol === 'swp08' && routerServer.getRoutingForLevel) {
+      return routerServer.getRoutingForLevel(level);
+    }
+    return routerServer.getState().routing;
+  });
+
+  ipcMain.handle('set-level-name', (event, level, name) => {
+    if (currentProtocol === 'swp08' && routerServer.setLevelName) {
+      return routerServer.setLevelName(level, name);
+    }
+    return false;
   });
 
   ipcMain.handle('set-input-label', (event, input, label) => {
@@ -175,6 +242,9 @@ function setupIpcHandlers() {
       }
     }
 
+    // Save settings
+    updateSettings(config);
+
     return {
       success: true,
       state: {
@@ -209,6 +279,9 @@ function setupIpcHandlers() {
       }
     }
 
+    // Save settings
+    updateSettings({ protocol });
+
     return {
       success: true,
       state: {
@@ -217,12 +290,36 @@ function setupIpcHandlers() {
       }
     };
   });
+
+  // Get/set auto-start setting
+  ipcMain.handle('get-settings', () => {
+    return settings;
+  });
+
+  ipcMain.handle('set-auto-start', (event, enabled) => {
+    settings.autoStart = enabled;
+    saveSettings();
+    return { success: true };
+  });
 }
 
-app.whenReady().then(() => {
-  initializeServer('videohub');
+app.whenReady().then(async () => {
+  // Load saved settings
+  loadSettings();
+
+  // Initialize server with saved settings
+  initializeServer(settings.protocol, settings);
   setupIpcHandlers();
   createWindow();
+
+  // Auto-start server if enabled
+  if (settings.autoStart) {
+    try {
+      await routerServer.start();
+    } catch (err) {
+      console.error('Auto-start failed:', err);
+    }
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

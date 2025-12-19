@@ -4,25 +4,38 @@ const EventEmitter = require('events');
 // SW-P-08 Protocol Constants
 const DLE = 0x10;  // Data Link Escape
 const STX = 0x02;  // Start of Text
+const ETX = 0x03;  // End of Text
 const ACK = 0x06;  // Acknowledge
 const NAK = 0x15;  // Negative Acknowledge
 
-// Command codes (SOM - Start of Message)
+// Command codes based on Companion module implementation
 const CMD = {
+  // Standard commands (8-bit addressing, up to 1024 sources/dests)
   CROSSPOINT_INTERROGATE: 0x01,
-  CROSSPOINT_CONNECTED: 0x02,
   CROSSPOINT_CONNECT: 0x02,
   CROSSPOINT_TALLY: 0x03,
-  CROSSPOINT_TALLY_DUMP_REQUEST: 0x21,
-  CROSSPOINT_TALLY_DUMP_RESPONSE: 0x22,
-  SOURCE_NAME_REQUEST: 0x61,
-  SOURCE_NAME_RESPONSE: 0x62,
-  DEST_NAME_REQUEST: 0x63,
-  DEST_NAME_RESPONSE: 0x64,
-  EXTENDED_CROSSPOINT_CONNECT: 0x04,
-  EXTENDED_CROSSPOINT_CONNECTED: 0x05,
-  EXTENDED_CROSSPOINT_INTERROGATE: 0x06,
-  EXTENDED_CROSSPOINT_TALLY: 0x07
+  CROSSPOINT_CONNECTED: 0x04,
+  CROSSPOINT_TALLY_DUMP_REQUEST: 0x15,
+
+  // Extended commands (16-bit addressing, up to 65536 sources/dests)
+  EXTENDED_CROSSPOINT_INTERROGATE: 0x81,
+  EXTENDED_CROSSPOINT_CONNECT: 0x82,
+  EXTENDED_CROSSPOINT_TALLY: 0x83,
+  EXTENDED_CROSSPOINT_CONNECTED: 0x84,
+  EXTENDED_TALLY_DUMP_REQUEST: 0x95,
+
+  // Name commands
+  PROTOCOL_IMPLEMENTATION: 0x61,
+  SOURCE_NAME_REQUEST: 0x64,
+  DEST_NAME_REQUEST: 0x66,
+  SOURCE_NAME_RESPONSE: 0x6a,
+  DEST_NAME_RESPONSE: 0x6b,
+
+  // Extended name commands
+  EXTENDED_SOURCE_NAME_REQUEST: 0xe4,
+  EXTENDED_DEST_NAME_REQUEST: 0xe6,
+  EXTENDED_SOURCE_NAME_RESPONSE: 0xea,
+  EXTENDED_DEST_NAME_RESPONSE: 0xeb
 };
 
 class SWP08Server extends EventEmitter {
@@ -34,6 +47,20 @@ class SWP08Server extends EventEmitter {
     this.levels = options.levels || 1;  // Number of matrix levels (video, audio, etc.)
     this.modelName = options.modelName || 'SW-P-08 Router Simulator';
     this.friendlyName = options.friendlyName || 'SWP08 Simulator';
+
+    // Default level names
+    this.defaultLevelNames = [
+      'Video', 'Audio 1', 'Audio 2', 'Audio 3',
+      'Audio 4', 'Audio 5', 'Audio 6', 'Audio 7',
+      'Audio 8', 'Audio 9', 'Audio 10', 'Audio 11',
+      'Audio 12', 'Audio 13', 'Audio 14', 'Audio 15'
+    ];
+
+    // Initialize level names
+    this.levelNames = {};
+    for (let i = 0; i < this.levels; i++) {
+      this.levelNames[i] = this.defaultLevelNames[i] || `Level ${i + 1}`;
+    }
 
     // Initialize routing table per level: routing[level][dest] = source
     this.routing = {};
@@ -155,15 +182,16 @@ class SWP08Server extends EventEmitter {
         continue;
       }
 
-      // Find message end - look for next DLE that's not escaped (DLE DLE)
+      // Find message end - look for DLE ETX sequence (not escaped DLE DLE)
       let msgEnd = -1;
       for (let i = 2; i < buffer.length - 1; i++) {
-        if (buffer[i] === DLE && buffer[i + 1] !== DLE) {
-          msgEnd = i;
-          break;
-        }
-        if (buffer[i] === DLE && buffer[i + 1] === DLE) {
-          i++; // Skip escaped DLE
+        if (buffer[i] === DLE) {
+          if (buffer[i + 1] === DLE) {
+            i++; // Skip escaped DLE
+          } else if (buffer[i + 1] === ETX) {
+            msgEnd = i;
+            break;
+          }
         }
       }
 
@@ -173,19 +201,50 @@ class SWP08Server extends EventEmitter {
         return;
       }
 
-      // Extract message (without DLE STX and trailing DLE)
-      const msgData = this.unescapeData(buffer.slice(2, msgEnd));
-      const checkByte = buffer[msgEnd + 1]; // Byte after trailing DLE
+      // Extract message data (between DLE STX and DLE ETX)
+      // Format: DLE STX [DATA] [BTC] [CHECKSUM] DLE ETX
+      const rawData = buffer.slice(2, msgEnd);
+      const unescaped = this.unescapeData(rawData);
 
-      // Verify checksum
-      if (this.verifyChecksum(msgData, checkByte)) {
+      // Need at least 3 bytes: 1 data + BTC + checksum
+      if (unescaped.length < 3) {
+        // Invalid message, skip
+        buffer = buffer.slice(msgEnd + 2);
+        continue;
+      }
+
+      const checkByte = unescaped[unescaped.length - 1];  // Last byte is checksum
+      const btc = unescaped[unescaped.length - 2];        // Second to last is BTC
+      const msgData = unescaped.slice(0, -2);             // Data without BTC and checksum
+
+      // Verify BTC (byte count should equal data length + 1)
+      const expectedBtc = msgData.length + 1;
+      if (btc !== expectedBtc) {
+        // BTC mismatch - might be old format without BTC, try legacy parsing
+        // Some implementations don't include BTC
+        const legacyData = unescaped.slice(0, -1);
+        const legacyCheck = unescaped[unescaped.length - 1];
+        if (this.verifyChecksum(legacyData, legacyCheck)) {
+          this.processMessage(socket, legacyData, clientId);
+          socket.write(Buffer.from([DLE, ACK]));
+          buffer = buffer.slice(msgEnd + 2);
+          continue;
+        }
+        socket.write(Buffer.from([DLE, NAK]));
+        buffer = buffer.slice(msgEnd + 2);
+        continue;
+      }
+
+      // Verify checksum (calculated over data + BTC)
+      const dataWithBtc = unescaped.slice(0, -1);  // Everything except checksum
+      if (this.verifyChecksum(dataWithBtc, checkByte)) {
         this.processMessage(socket, msgData, clientId);
         socket.write(Buffer.from([DLE, ACK]));
       } else {
         socket.write(Buffer.from([DLE, NAK]));
       }
 
-      // Move past this message
+      // Move past this message (DLE ETX = 2 bytes)
       buffer = buffer.slice(msgEnd + 2);
     }
 
@@ -230,26 +289,39 @@ class SWP08Server extends EventEmitter {
   }
 
   buildMessage(data) {
-    const escaped = this.escapeData(data);
-    const checksum = this.calculateChecksum(data);
+    // SW-P-08 message format:
+    // DLE STX [DATA] [BTC] [CHECKSUM] DLE ETX
+    // BTC = byte count = data length (the number of data bytes, not including BTC or checksum)
+    // Companion validates: packet[packet.length - 2] === packet.length - 2
+    // So for 5 data bytes: payload is [5 bytes data][5][checksum] = 7 bytes
+    // And packet.length - 2 = 5, which should equal BTC
+    const btc = data.length;
+
+    // Checksum is two's complement of (data + BTC)
+    const dataWithBtc = Buffer.concat([data, Buffer.from([btc])]);
+    const checksum = this.calculateChecksum(dataWithBtc);
+
+    // Full payload: data + BTC + checksum
+    const payload = Buffer.concat([dataWithBtc, Buffer.from([checksum])]);
+    const escaped = this.escapeData(payload);
+
     return Buffer.concat([
       Buffer.from([DLE, STX]),
       escaped,
-      Buffer.from([DLE, checksum])
+      Buffer.from([DLE, ETX])
     ]);
   }
 
   processMessage(socket, data, clientId) {
-    if (data.length < 4) return;
+    if (data.length < 1) return;
 
     const cmd = data[0];
-    const matrix = data[1];
-    const level = data[2];
-    const multiplier = data[3];
+    const matrix = data.length > 1 ? data[1] : 0;
+    const level = data.length > 2 ? data[2] : 0;
 
     this.emit('command-received', {
       clientId,
-      command: `CMD:0x${cmd.toString(16)} Matrix:${matrix} Level:${level}`
+      command: `CMD:0x${cmd.toString(16).padStart(2, '0')} Matrix:${matrix} Level:${level} Len:${data.length} Data:${data.toString('hex')}`
     });
 
     switch (cmd) {
@@ -257,7 +329,7 @@ class SWP08Server extends EventEmitter {
         this.handleCrosspointInterrogate(socket, data);
         break;
       case CMD.CROSSPOINT_CONNECT:
-        this.handleCrosspointConnect(socket, data, clientId);
+        this.handleCrosspointConnect(socket, data);
         break;
       case CMD.CROSSPOINT_TALLY_DUMP_REQUEST:
         this.handleTallyDumpRequest(socket, data);
@@ -272,7 +344,13 @@ class SWP08Server extends EventEmitter {
         this.handleExtendedCrosspointInterrogate(socket, data);
         break;
       case CMD.EXTENDED_CROSSPOINT_CONNECT:
-        this.handleExtendedCrosspointConnect(socket, data, clientId);
+        this.handleExtendedCrosspointConnect(socket, data);
+        break;
+      case CMD.EXTENDED_SOURCE_NAME_REQUEST:
+        this.handleExtendedSourceNameRequest(socket, data);
+        break;
+      case CMD.EXTENDED_DEST_NAME_REQUEST:
+        this.handleExtendedDestNameRequest(socket, data);
         break;
       default:
         this.emit('unknown-command', { clientId, command: `0x${cmd.toString(16)}` });
@@ -280,43 +358,80 @@ class SWP08Server extends EventEmitter {
   }
 
   handleCrosspointInterrogate(socket, data) {
-    // Response: CROSSPOINT_CONNECTED
-    const level = data[2] & 0x0F;
-    const destByte = data.length > 4 ? data[4] : 0;
-    const dest = destByte;
+    // SW-P-08 Standard Crosspoint Interrogate (0x01)
+    // Request: CMD MATRIX+LEVEL MULT DEST (4 bytes min)
+    // Byte 1: ((matrix-1) << 4) | (level & 0x0f)
+    // Byte 2: Multiplier - dest high bits in bits 4-6
+    // Byte 3: Dest low byte (dest & 0x7f)
+    if (data.length < 4) return;
+
+    const matrixLevel = data[1];
+    const matrix = ((matrixLevel >> 4) & 0x0F) + 1;
+    const level = matrixLevel & 0x0F;
+    const multiplier = data[2];
+    const destLo = data[3];
+    const destHi = (multiplier >> 4) & 0x07;
+    const dest = (destHi << 7) | (destLo & 0x7F);
 
     const source = this.routing[level]?.[dest] ?? 0;
 
+    // Response: CROSSPOINT_CONNECTED (0x04)
+    // Byte 1: ((matrix-1) << 4) | (level & 0x0f)
+    // Byte 2: Multiplier with source high (bits 0-2) and dest high (bits 4-6)
+    // Byte 3: Dest low byte
+    // Byte 4: Source low byte
+    const srcHi = (source >> 7) & 0x07;
+    const srcLo = source & 0x7F;
+    const respMultiplier = (destHi << 4) | srcHi;
+
     const response = Buffer.from([
       CMD.CROSSPOINT_CONNECTED,
-      data[1],  // matrix
-      level,
-      0,        // multiplier (dest high byte)
-      dest,     // destination
-      0,        // multiplier (source high byte)
-      source    // source
+      matrixLevel,
+      respMultiplier,
+      destLo,
+      srcLo
     ]);
 
     socket.write(this.buildMessage(response));
   }
 
-  handleCrosspointConnect(socket, data, clientId) {
-    const level = data[2] & 0x0F;
-    const dest = data[4];
-    const source = data[6];
+  handleCrosspointConnect(socket, data) {
+    // SW-P-08 Standard Crosspoint Connect (0x02)
+    // Byte 0: CMD (0x02)
+    // Byte 1: ((matrix-1) << 4) | (level & 0x0f)
+    // Byte 2: Multiplier - source high (bits 0-2), dest high (bits 4-6)
+    // Byte 3: Dest low byte (dest & 0x7f)
+    // Byte 4: Source low byte (source & 0x7f)
+    if (data.length < 5) return;
 
-    if (level < this.levels && dest < this.outputs && source < this.inputs) {
+    const matrixLevel = data[1];
+    const matrix = ((matrixLevel >> 4) & 0x0F) + 1;
+    const level = matrixLevel & 0x0F;
+    const multiplier = data[2];
+    const destLo = data[3];
+    const srcLo = data[4];
+
+    const srcHi = multiplier & 0x07;
+    const destHi = (multiplier >> 4) & 0x07;
+    const source = (srcHi << 7) | (srcLo & 0x7F);
+    const dest = (destHi << 7) | (destLo & 0x7F);
+
+    // Ensure level exists in routing table
+    if (!this.routing[level]) {
+      this.routing[level] = {};
+    }
+
+    if (dest < this.outputs && source < this.inputs) {
       this.routing[level][dest] = source;
 
-      // Send connected confirmation to all clients
+      // Send CROSSPOINT_CONNECTED (0x04) confirmation to all clients
+      const respMultiplier = (destHi << 4) | srcHi;
       const response = Buffer.from([
         CMD.CROSSPOINT_CONNECTED,
-        data[1],
-        level,
-        0,
-        dest,
-        0,
-        source
+        matrixLevel,
+        respMultiplier,
+        destLo,
+        srcLo
       ]);
       this.broadcast(this.buildMessage(response));
 
@@ -325,8 +440,13 @@ class SWP08Server extends EventEmitter {
   }
 
   handleExtendedCrosspointInterrogate(socket, data) {
-    // Extended format uses 16-bit source/dest
-    const level = data[2] & 0x0F;
+    // Extended format (0x81) uses 16-bit addressing
+    // Request: CMD MATRIX LEVEL DEST_HI DEST_LO (5 bytes)
+    // Response: CMD MATRIX LEVEL DEST_HI DEST_LO SRC_HI SRC_LO (7 bytes)
+    if (data.length < 5) return;
+
+    const matrix = data[1];
+    const level = data[2];
     const destHi = data[3];
     const destLo = data[4];
     const dest = (destHi << 8) | destLo;
@@ -337,7 +457,7 @@ class SWP08Server extends EventEmitter {
 
     const response = Buffer.from([
       CMD.EXTENDED_CROSSPOINT_CONNECTED,
-      data[1],
+      matrix,
       level,
       destHi,
       destLo,
@@ -348,8 +468,12 @@ class SWP08Server extends EventEmitter {
     socket.write(this.buildMessage(response));
   }
 
-  handleExtendedCrosspointConnect(socket, data, clientId) {
-    const level = data[2] & 0x0F;
+  handleExtendedCrosspointConnect(socket, data) {
+    // Extended format (0x82): CMD MATRIX LEVEL DEST_HI DEST_LO SRC_HI SRC_LO (7 bytes)
+    if (data.length < 7) return;
+
+    const matrix = data[1];
+    const level = data[2];
     const destHi = data[3];
     const destLo = data[4];
     const srcHi = data[5];
@@ -358,12 +482,17 @@ class SWP08Server extends EventEmitter {
     const dest = (destHi << 8) | destLo;
     const source = (srcHi << 8) | srcLo;
 
-    if (level < this.levels && dest < this.outputs && source < this.inputs) {
+    // Ensure level exists in routing table
+    if (!this.routing[level]) {
+      this.routing[level] = {};
+    }
+
+    if (dest < this.outputs && source < this.inputs) {
       this.routing[level][dest] = source;
 
       const response = Buffer.from([
         CMD.EXTENDED_CROSSPOINT_CONNECTED,
-        data[1],
+        matrix,
         level,
         destHi,
         destLo,
@@ -377,58 +506,157 @@ class SWP08Server extends EventEmitter {
   }
 
   handleTallyDumpRequest(socket, data) {
-    const level = data[2] & 0x0F;
+    // Tally dump request (0x15)
+    // Send CROSSPOINT_TALLY (0x03) for each crosspoint
+    const matrixLevel = data[1];
+    const level = matrixLevel & 0x0F;
 
-    // Send all crosspoints for this level
+    // Send all crosspoints for this level using standard tally format
     for (let dest = 0; dest < this.outputs; dest++) {
       const source = this.routing[level]?.[dest] ?? 0;
+
+      const srcHi = (source >> 7) & 0x07;
+      const srcLo = source & 0x7F;
+      const destHi = (dest >> 7) & 0x07;
+      const destLo = dest & 0x7F;
+      const multiplier = (destHi << 4) | srcHi;
+
       const response = Buffer.from([
-        CMD.CROSSPOINT_TALLY_DUMP_RESPONSE,
-        data[1],
-        level,
-        0,
-        dest,
-        0,
-        source
+        CMD.CROSSPOINT_TALLY,
+        matrixLevel,
+        multiplier,
+        destLo,
+        srcLo
       ]);
       socket.write(this.buildMessage(response));
     }
   }
 
   handleSourceNameRequest(socket, data) {
-    const charStart = data[3]; // Character position start (usually 0)
-    const source = data[4];
+    // Source name request (0x64)
+    // Format: CMD MATRIX+LEVEL CHAR_LEN (3 bytes minimum)
+    // Companion sends: CMD, matrix<<4|level, charLenIndex
+    // We respond with all source names
+    if (data.length < 3) return;
 
-    const label = this.inputLabels[source] || `IN ${source + 1}`.padEnd(8);
+    const matrixLevel = data[1];
+    const charLenIndex = data[2];  // 0=4 chars, 1=8 chars, 2=12 chars
+    const charLengths = [4, 8, 12];
+    const charLen = charLengths[charLenIndex] || 8;
 
-    const response = Buffer.from([
-      CMD.SOURCE_NAME_RESPONSE,
-      data[1],
-      data[2],
-      charStart,
-      source,
-      ...Buffer.from(label.substring(0, 8).padEnd(8))
-    ]);
+    // Send names in batches - Companion expects:
+    // CMD, MATRIX+LEVEL, CHAR_LEN_INDEX, LABEL_NUM_HI, LABEL_NUM_LO, COUNT, [NAMES...]
+    for (let i = 0; i < this.inputs; i++) {
+      const label = this.inputLabels[i] || `IN ${i + 1}`;
+      const paddedLabel = label.substring(0, charLen).padEnd(charLen);
 
-    socket.write(this.buildMessage(response));
+      const response = Buffer.from([
+        CMD.SOURCE_NAME_RESPONSE,
+        matrixLevel,
+        charLenIndex,
+        (i >> 8) & 0xFF,  // Label number high byte
+        i & 0xFF,          // Label number low byte
+        1,                 // Count (1 label per message)
+        ...Buffer.from(paddedLabel)
+      ]);
+
+      socket.write(this.buildMessage(response));
+    }
   }
 
   handleDestNameRequest(socket, data) {
-    const charStart = data[3];
-    const dest = data[4];
+    // Dest name request (0x66)
+    // Format: CMD MATRIX CHAR_LEN (3 bytes minimum)
+    // Note: Dest names don't have level in the matrix byte
+    if (data.length < 3) return;
 
-    const label = this.outputLabels[dest] || `OUT ${dest + 1}`.padEnd(8);
+    const matrix = data[1];
+    const charLenIndex = data[2];  // 0=4 chars, 1=8 chars, 2=12 chars
+    const charLengths = [4, 8, 12];
+    const charLen = charLengths[charLenIndex] || 8;
 
-    const response = Buffer.from([
-      CMD.DEST_NAME_RESPONSE,
-      data[1],
-      data[2],
-      charStart,
-      dest,
-      ...Buffer.from(label.substring(0, 8).padEnd(8))
-    ]);
+    // Send names in batches - Companion expects:
+    // CMD, MATRIX, CHAR_LEN_INDEX, LABEL_NUM_HI, LABEL_NUM_LO, COUNT, [NAMES...]
+    for (let i = 0; i < this.outputs; i++) {
+      const label = this.outputLabels[i] || `OUT ${i + 1}`;
+      const paddedLabel = label.substring(0, charLen).padEnd(charLen);
 
-    socket.write(this.buildMessage(response));
+      const response = Buffer.from([
+        CMD.DEST_NAME_RESPONSE,
+        matrix,
+        charLenIndex,
+        (i >> 8) & 0xFF,  // Label number high byte
+        i & 0xFF,          // Label number low byte
+        1,                 // Count (1 label per message)
+        ...Buffer.from(paddedLabel)
+      ]);
+
+      socket.write(this.buildMessage(response));
+    }
+  }
+
+  handleExtendedSourceNameRequest(socket, data) {
+    // Extended source name request (0xe4)
+    // Format: CMD MATRIX LEVEL CHAR_LEN (4 bytes minimum)
+    if (data.length < 4) return;
+
+    const matrix = data[1];
+    const level = data[2];
+    const charLenIndex = data[3];  // 0=4 chars, 1=8 chars, 2=12 chars
+    const charLengths = [4, 8, 12];
+    const charLen = charLengths[charLenIndex] || 8;
+
+    // Send names - Extended format:
+    // CMD, MATRIX, LEVEL, CHAR_LEN_INDEX, LABEL_NUM_HI, LABEL_NUM_LO, COUNT, [NAMES...]
+    for (let i = 0; i < this.inputs; i++) {
+      const label = this.inputLabels[i] || `IN ${i + 1}`;
+      const paddedLabel = label.substring(0, charLen).padEnd(charLen);
+
+      const response = Buffer.from([
+        CMD.EXTENDED_SOURCE_NAME_RESPONSE,
+        matrix,
+        level,
+        charLenIndex,
+        (i >> 8) & 0xFF,  // Label number high byte
+        i & 0xFF,          // Label number low byte
+        1,                 // Count (1 label per message)
+        ...Buffer.from(paddedLabel)
+      ]);
+
+      socket.write(this.buildMessage(response));
+    }
+  }
+
+  handleExtendedDestNameRequest(socket, data) {
+    // Extended dest name request (0xe6)
+    // Format: CMD MATRIX LEVEL CHAR_LEN (4 bytes minimum)
+    if (data.length < 4) return;
+
+    const matrix = data[1];
+    const level = data[2];
+    const charLenIndex = data[3];  // 0=4 chars, 1=8 chars, 2=12 chars
+    const charLengths = [4, 8, 12];
+    const charLen = charLengths[charLenIndex] || 8;
+
+    // Send names - Extended format:
+    // CMD, MATRIX, LEVEL, CHAR_LEN_INDEX, LABEL_NUM_HI, LABEL_NUM_LO, COUNT, [NAMES...]
+    for (let i = 0; i < this.outputs; i++) {
+      const label = this.outputLabels[i] || `OUT ${i + 1}`;
+      const paddedLabel = label.substring(0, charLen).padEnd(charLen);
+
+      const response = Buffer.from([
+        CMD.EXTENDED_DEST_NAME_RESPONSE,
+        matrix,
+        level,
+        charLenIndex,
+        (i >> 8) & 0xFF,  // Label number high byte
+        i & 0xFF,          // Label number low byte
+        1,                 // Count (1 label per message)
+        ...Buffer.from(paddedLabel)
+      ]);
+
+      socket.write(this.buildMessage(response));
+    }
   }
 
   broadcast(message) {
@@ -443,17 +671,28 @@ class SWP08Server extends EventEmitter {
 
   // API methods for UI control
   setRoute(output, input, level = 0) {
-    if (level < this.levels && output < this.outputs && input < this.inputs) {
+    // Ensure level exists
+    if (!this.routing[level]) {
+      this.routing[level] = {};
+    }
+
+    if (output < this.outputs && input < this.inputs) {
       this.routing[level][output] = input;
+
+      // Broadcast CROSSPOINT_CONNECTED (0x04) using standard format
+      const matrixLevel = (0 << 4) | (level & 0x0F);  // matrix 1, level
+      const srcHi = (input >> 7) & 0x07;
+      const srcLo = input & 0x7F;
+      const destHi = (output >> 7) & 0x07;
+      const destLo = output & 0x7F;
+      const multiplier = (destHi << 4) | srcHi;
 
       const response = Buffer.from([
         CMD.CROSSPOINT_CONNECTED,
-        0,
-        level,
-        0,
-        output,
-        0,
-        input
+        matrixLevel,
+        multiplier,
+        destLo,
+        srcLo
       ]);
       this.broadcast(this.buildMessage(response));
       this.emit('routing-changed', [{ level, output, input }]);
@@ -480,25 +719,54 @@ class SWP08Server extends EventEmitter {
     return false;
   }
 
-  getState() {
-    // Flatten routing for UI (use level 0 as primary)
-    const flatRouting = {};
+  getState(level = 0) {
+    // Get routing for specified level
+    const levelRouting = {};
     for (let i = 0; i < this.outputs; i++) {
-      flatRouting[i] = this.routing[0]?.[i] ?? 0;
+      levelRouting[i] = this.routing[level]?.[i] ?? 0;
+    }
+
+    // Get all levels routing for complete state
+    const allRouting = {};
+    for (let l = 0; l < this.levels; l++) {
+      allRouting[l] = {};
+      for (let i = 0; i < this.outputs; i++) {
+        allRouting[l][i] = this.routing[l]?.[i] ?? 0;
+      }
     }
 
     return {
       inputs: this.inputs,
       outputs: this.outputs,
       levels: this.levels,
+      currentLevel: level,
+      levelNames: { ...this.levelNames },
       modelName: this.modelName,
       friendlyName: this.friendlyName,
-      routing: flatRouting,
+      routing: levelRouting,
+      allRouting: allRouting,
       inputLabels: { ...this.inputLabels },
       outputLabels: { ...this.outputLabels },
       outputLocks: {},  // SW-P-08 doesn't have built-in locks in basic protocol
       clientCount: this.clients.size
     };
+  }
+
+  getRoutingForLevel(level) {
+    const levelRouting = {};
+    for (let i = 0; i < this.outputs; i++) {
+      levelRouting[i] = this.routing[level]?.[i] ?? 0;
+    }
+    return levelRouting;
+  }
+
+  setLevelName(level, name) {
+    if (level >= 0 && level < this.levels) {
+      this.levelNames[level] = name;
+      this.emit('level-names-changed', [{ level, name }]);
+      return true;
+    }
+    return false;
   }
 
   updateConfig(config) {
@@ -517,6 +785,10 @@ class SWP08Server extends EventEmitter {
         if (this.routing[level][dest] === undefined) {
           this.routing[level][dest] = dest < this.inputs ? dest : 0;
         }
+      }
+      // Initialize level name if needed
+      if (this.levelNames[level] === undefined) {
+        this.levelNames[level] = this.defaultLevelNames[level] || `Level ${level + 1}`;
       }
     }
 
