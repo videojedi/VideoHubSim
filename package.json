@@ -1,22 +1,68 @@
 {
-  "name": "videohub-simulator",
+  "name": "router-protocol-simulator",
   "version": "1.0.0",
-  "description": "Blackmagic VideoHub Router Simulator",
+  "description": "Simulate Blackmagic VideoHub and SW-P-08 broadcast routers",
   "main": "src/main.js",
   "scripts": {
     "start": "unset ELECTRON_RUN_AS_NODE && electron .",
-    "dev": "unset ELECTRON_RUN_AS_NODE && electron . --dev"
+    "dev": "unset ELECTRON_RUN_AS_NODE && electron . --dev",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win"
   },
   "keywords": [
     "blackmagic",
     "videohub",
+    "swp08",
     "router",
     "simulator",
+    "broadcast",
     "electron"
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/videojedi/VideoHubSim.git"
+  },
+  "build": {
+    "appId": "com.videohub.simulator",
+    "productName": "Router Protocol Simulator",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["universal"]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
   "devDependencies": {
-    "electron": "^28.3.3"
+    "electron": "^28.3.3",
+    "electron-builder": "^26.0.12"
   }
 }
