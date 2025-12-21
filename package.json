@@ -1,6 +1,6 @@
 {
   "name": "router-protocol-simulator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Simulate Blackmagic VideoHub and SW-P-08 broadcast routers",
   "main": "src/main.js",
   "scripts": {
@@ -37,22 +37,30 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
+      "icon": "build/icon.icns",
       "target": [
         {
           "target": "dmg",
-          "arch": ["universal"]
+          "arch": [
+            "universal"
+          ]
         }
       ]
     },
     "win": {
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },

@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Gradient for main background -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#0f3460"/>
+    </linearGradient>
+
+    <!-- Neon glow gradient -->
+    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00d9ff"/>
+      <stop offset="50%" style="stop-color:#00ff88"/>
+      <stop offset="100%" style="stop-color:#00d9ff"/>
+    </linearGradient>
+
+    <!-- Signal gradient -->
+    <linearGradient id="signalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b"/>
+      <stop offset="50%" style="stop-color:#ffd93d"/>
+      <stop offset="100%" style="stop-color:#6bcb77"/>
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Strong glow -->
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="15" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="480" fill="url(#bgGrad)"/>
+
+  <!-- Outer ring -->
+  <circle cx="512" cy="512" r="460" fill="none" stroke="url(#neonGrad)" stroke-width="6" opacity="0.5"/>
+
+  <!-- Grid pattern background -->
+  <g opacity="0.1" stroke="#00d9ff" stroke-width="1">
+    <line x1="100" y1="512" x2="924" y2="512"/>
+    <line x1="512" y1="100" x2="512" y2="924"/>
+    <line x1="200" y1="200" x2="824" y2="824"/>
+    <line x1="824" y1="200" x2="200" y2="824"/>
+  </g>
+
+  <!-- Input ports (left side) -->
+  <g filter="url(#glow)">
+    <!-- Input 1 -->
+    <rect x="120" y="250" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00d9ff" stroke-width="3"/>
+    <circle cx="180" cy="275" r="12" fill="#00ff88"/>
+
+    <!-- Input 2 -->
+    <rect x="120" y="350" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00d9ff" stroke-width="3"/>
+    <circle cx="180" cy="375" r="12" fill="#ffd93d"/>
+
+    <!-- Input 3 -->
+    <rect x="120" y="450" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00d9ff" stroke-width="3"/>
+    <circle cx="180" cy="475" r="12" fill="#ff6b6b"/>
+
+    <!-- Input 4 -->
+    <rect x="120" y="550" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00d9ff" stroke-width="3"/>
+    <circle cx="180" cy="575" r="12" fill="#00d9ff"/>
+
+    <!-- Input 5 -->
+    <rect x="120" y="650" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00d9ff" stroke-width="3"/>
+    <circle cx="180" cy="675" r="12" fill="#c56cf0"/>
+  </g>
+
+  <!-- Output ports (right side) -->
+  <g filter="url(#glow)">
+    <!-- Output 1 -->
+    <rect x="824" y="300" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00ff88" stroke-width="3"/>
+    <circle cx="844" cy="325" r="12" fill="#00ff88"/>
+
+    <!-- Output 2 -->
+    <rect x="824" y="425" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00ff88" stroke-width="3"/>
+    <circle cx="844" cy="450" r="12" fill="#ffd93d"/>
+
+    <!-- Output 3 -->
+    <rect x="824" y="550" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00ff88" stroke-width="3"/>
+    <circle cx="844" cy="575" r="12" fill="#ff6b6b"/>
+
+    <!-- Output 4 -->
+    <rect x="824" y="675" width="80" height="50" rx="8" fill="#1a1a2e" stroke="#00ff88" stroke-width="3"/>
+    <circle cx="844" cy="700" r="12" fill="#00d9ff"/>
+  </g>
+
+  <!-- Central router matrix -->
+  <g filter="url(#strongGlow)">
+    <rect x="350" y="350" width="324" height="324" rx="30" fill="#1a1a2e" stroke="url(#neonGrad)" stroke-width="5"/>
+
+    <!-- Matrix grid -->
+    <g stroke="#00d9ff" stroke-width="2" opacity="0.4">
+      <line x1="431" y1="370" x2="431" y2="654"/>
+      <line x1="512" y1="370" x2="512" y2="654"/>
+      <line x1="593" y1="370" x2="593" y2="654"/>
+      <line x1="370" y1="421" x2="654" y2="421"/>
+      <line x1="370" y1="492" x2="654" y2="492"/>
+      <line x1="370" y1="563" x2="654" y2="563"/>
+    </g>
+
+    <!-- Active crosspoints -->
+    <circle cx="431" cy="421" r="18" fill="#00ff88" filter="url(#glow)"/>
+    <circle cx="512" cy="492" r="18" fill="#ffd93d" filter="url(#glow)"/>
+    <circle cx="593" cy="563" r="18" fill="#ff6b6b" filter="url(#glow)"/>
+    <circle cx="431" cy="634" r="18" fill="#00d9ff" filter="url(#glow)"/>
+  </g>
+
+  <!-- Signal routing lines -->
+  <g fill="none" stroke-width="4" filter="url(#glow)">
+    <!-- Route 1: Input 1 to crosspoint to Output 1 -->
+    <path d="M200 275 Q 300 275 350 325 Q 400 375 431 421" stroke="#00ff88" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1s" repeatCount="indefinite"/>
+    </path>
+    <path d="M431 421 Q 500 380 600 325 Q 700 280 824 325" stroke="#00ff88" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Route 2: Input 2 to crosspoint to Output 2 -->
+    <path d="M200 375 Q 280 400 350 450 Q 420 480 512 492" stroke="#ffd93d" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M512 492 Q 600 470 700 450 Q 760 440 824 450" stroke="#ffd93d" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.2s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Route 3: Input 3 to crosspoint to Output 3 -->
+    <path d="M200 475 Q 280 500 380 540 Q 480 570 593 563" stroke="#ff6b6b" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="0.8s" repeatCount="indefinite"/>
+    </path>
+    <path d="M593 563 Q 680 560 750 570 Q 790 575 824 575" stroke="#ff6b6b" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="0.8s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- Route 4: Input 4 to crosspoint to Output 4 -->
+    <path d="M200 575 Q 250 600 320 630 Q 380 650 431 634" stroke="#00d9ff" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <path d="M431 634 Q 550 680 700 700 Q 770 705 824 700" stroke="#00d9ff" stroke-dasharray="8,4">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- "SIM" text badge -->
+  <g filter="url(#glow)">
+    <rect x="432" y="780" width="160" height="60" rx="30" fill="#1a1a2e" stroke="url(#signalGrad)" stroke-width="3"/>
+    <text x="512" y="822" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="url(#signalGrad)" text-anchor="middle">SIM</text>
+  </g>
+
+  <!-- Decorative corner accents -->
+  <g stroke="url(#neonGrad)" stroke-width="3" fill="none" opacity="0.6">
+    <path d="M100 200 L100 100 L200 100"/>
+    <path d="M924 200 L924 100 L824 100"/>
+    <path d="M100 824 L100 924 L200 924"/>
+    <path d="M924 824 L924 924 L824 924"/>
+  </g>
+</svg>
