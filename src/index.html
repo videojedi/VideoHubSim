@@ -748,7 +748,7 @@
       renderOutputLabels();
     }
 
-    function updateProtocolUI(protocol) {
+    function updateProtocolUI(protocol, setDefaults = false) {
       currentProtocol = protocol;
       protocolSelect.value = protocol;
 
@@ -758,14 +758,18 @@
         modelGroup.style.display = 'block';
         levelsGroup.style.display = 'none';
         levelSelector.classList.remove('visible');
-        document.getElementById('portNumber').value = '9990';
-        document.getElementById('friendlyName').value = 'VideoHub Simulator';
+        if (setDefaults) {
+          document.getElementById('portNumber').value = '9990';
+          document.getElementById('friendlyName').value = 'VideoHub Simulator';
+        }
       } else if (protocol === 'swp08') {
         appTitle.textContent = 'SW-P-08 Simulator';
         modelGroup.style.display = 'none';
         levelsGroup.style.display = 'block';
-        document.getElementById('portNumber').value = '8910';
-        document.getElementById('friendlyName').value = 'SWP08 Simulator';
+        if (setDefaults) {
+          document.getElementById('portNumber').value = '8910';
+          document.getElementById('friendlyName').value = 'SWP08 Simulator';
+        }
         document.getElementById('levelCount').value = state.levels || 1;
         renderLevelSelector();
       }
@@ -837,7 +841,7 @@
         const result = await window.videoHub.switchProtocol(newProtocol);
         if (result.success) {
           state = result.state;
-          updateProtocolUI(newProtocol);
+          updateProtocolUI(newProtocol, true);  // Set defaults when user changes protocol
           renderAll();
           log(`Switched to ${newProtocol === 'videohub' ? 'VideoHub' : 'SW-P-08'} protocol`, 'success');
         } else {
