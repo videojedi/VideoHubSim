@@ -393,6 +393,7 @@ class VideoHubServer extends EventEmitter {
   updateConfig(config) {
     if (config.inputs !== undefined) this.inputs = config.inputs;
     if (config.outputs !== undefined) this.outputs = config.outputs;
+    if (config.port !== undefined) this.port = config.port;
     if (config.modelName !== undefined) this.modelName = config.modelName;
     if (config.friendlyName !== undefined) this.friendlyName = config.friendlyName;
 

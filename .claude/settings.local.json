@@ -20,7 +20,23 @@
       "Bash(npx electron@28 .)",
       "Bash(env)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm run build:mac:*)",
+      "Bash(npm run build:win:*)",
+      "Bash(ls:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh release create:*)",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator-1.0.0-universal.dmg\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator Setup 1.0.0.exe\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator 1.0.0.exe\" )",
+      "Bash(gh release delete:*)",
+      "Bash(git tag:*)",
+      "Bash(sips:*)",
+      "Bash(iconutil:*)",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator-1.1.0-universal.dmg\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator Setup 1.1.0.exe\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator 1.1.0.exe\" )"
     ]
   }
 }
