@@ -2,58 +2,81 @@
 
 A cross-platform Electron application that simulates broadcast video routers. Supports multiple protocols including Blackmagic VideoHub and SW-P-08 (Probel/Grass Valley). Perfect for testing router control software, developing integrations, or training purposes without requiring physical hardware.
 
-![Router Protocol Simulator Screenshot](docs/screenshot.png)
+## Download
+
+**[Download Latest Release (v1.1.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+
+| Platform | Download |
+|----------|----------|
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-1.1.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v1.1.1/Router.Protocol.Simulator-1.1.1-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 1.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v1.1.1/Router.Protocol.Simulator.Setup.1.1.1.exe) |
+| Windows Portable | [Router Protocol Simulator 1.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v1.1.1/Router.Protocol.Simulator.1.1.1.exe) |
 
 ## Features
 
 - **Multiple Protocol Support** - Switch between VideoHub and SW-P-08 protocols
 - **Configurable Router Size** - Simulate routers from 12x12 up to 288x288
+- **Custom TCP Port** - Configure the server port for each protocol
 - **Real-time Routing Matrix** - Interactive UI to view and change routes
 - **Editable Labels** - Customize input and output names
 - **Pre-populated Labels** - Comes with TV station/edit suite example names
+- **Multi-level Support** - SW-P-08 matrix levels (video, audio, etc.)
 - **Multi-client Support** - Multiple control applications can connect simultaneously
+- **Persistent Settings** - Configuration saved across app restarts
+- **Auto-start Option** - Server can start automatically on launch
 - **Live Activity Log** - Monitor all protocol commands and client connections
 
 ## Supported Protocols
 
 ### Blackmagic VideoHub
-- TCP port 9990 (default)
+- TCP port 9990 (default, configurable)
 - Text-based protocol v2.8
 - Full support for routing, labels, and locks
 - Compatible with all VideoHub control software
 
 ### SW-P-08 (Probel/Grass Valley)
-- TCP port 8910 (default)
+- TCP port 8910 (default, configurable)
 - Binary protocol with DLE/STX framing
+- Standard and extended (16-bit) addressing
 - Crosspoint routing and interrogation
-- Source/destination label queries
-- Extended commands for large routers (16-bit addressing)
+- Source/destination name queries
+- Multi-level matrix support
 
 ## Installation
 
-### Prerequisites
+### Pre-built Binaries (Recommended)
 
-- Node.js 18 or later
+Download the appropriate installer for your platform from the [releases page](https://github.com/videojedi/VideoHubSim/releases/latest).
+
+### Building from Source
+
+#### Prerequisites
+
+- Node.js 16 or later
 - npm
 
-### Setup
+#### Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/router-protocol-simulator.git
-cd router-protocol-simulator
+git clone https://github.com/videojedi/VideoHubSim.git
+cd VideoHubSim
 
 # Install dependencies
 npm install
 
 # Start the application
 npm start
+
+# Build for your platform
+npm run build:mac   # macOS
+npm run build:win   # Windows
 ```
 
 ## Usage
 
 1. **Select Protocol** - Choose VideoHub or SW-P-08 from the Protocol dropdown
-2. **Configure Router** - Set the number of inputs/outputs and other options
+2. **Configure Router** - Set the number of inputs/outputs, TCP port, and other options
 3. **Start the Server** - Click "Start Server" to begin listening
 4. **Connect Clients** - Point your control software to the appropriate port
 
@@ -66,7 +89,9 @@ npm start
 | Friendly Name | Custom name reported to clients |
 | Inputs | Number of input ports (1-288) |
 | Outputs | Number of output ports (1-288) |
-| TCP Port | Server port (VideoHub: 9990, SW-P-08: 8910) |
+| TCP Port | Server port (default: VideoHub 9990, SW-P-08 8910) |
+| Matrix Levels | Number of levels for SW-P-08 (video, audio, etc.) |
+| Auto-start | Automatically start server when app launches |
 
 ## Protocol Details
 
@@ -103,14 +128,15 @@ INPUT LABELS:
 
 The simulator implements the SW-P-08 router control protocol including:
 
-- **Message Framing** - DLE/STX start, checksum validation
+- **Message Framing** - DLE/STX start, BTC, checksum validation
 - **Crosspoint Connect** (0x02) - Route source to destination
 - **Crosspoint Interrogate** (0x01) - Query current route
 - **Crosspoint Tally** (0x03) - Route change notifications
-- **Tally Dump** (0x21/0x22) - Bulk routing table query
-- **Source Names** (0x61/0x62) - Input label query
-- **Destination Names** (0x63/0x64) - Output label query
-- **Extended Commands** (0x04-0x07) - 16-bit addressing for large routers
+- **Crosspoint Connected** (0x04) - Route confirmation
+- **Tally Dump Request** (0x15) - Bulk routing table query
+- **Source Names** (0x64/0x6a) - Input label request/response
+- **Destination Names** (0x66/0x6b) - Output label request/response
+- **Extended Commands** (0x81-0x84, 0xe4-0xeb) - 16-bit addressing for large routers
 
 ## Compatible Software
 
@@ -140,10 +166,15 @@ npm run dev
 ### Project Structure
 
 ```
-router-protocol-simulator/
+VideoHubSim/
 ├── package.json
 ├── README.md
+├── LICENSE
 ├── .gitignore
+├── build/
+│   ├── icon.icns          # macOS icon
+│   ├── icon.png           # Windows/Linux icon
+│   └── icon.svg           # Source icon
 └── src/
     ├── main.js             # Electron main process
     ├── preload.js          # Preload script for secure IPC
@@ -178,6 +209,22 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Default port is 8910
 - Some clients may require specifying matrix/level 0
 
+## Changelog
+
+### v1.1.1
+- Fixed TCP port configuration not being applied
+
+### v1.1.0
+- Added funky router-style app icon
+- Fixed port field not being editable
+
+### v1.0.0
+- Initial release
+- VideoHub protocol support
+- SW-P-08 protocol support with multi-level matrix
+- Persistent settings
+- Auto-start option
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) for details.
@@ -186,3 +233,4 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 - VideoHub protocol based on [Blackmagic Videohub Developer Information](https://documents.blackmagicdesign.com/DeveloperManuals/VideohubDeveloperInformation.pdf)
 - SW-P-08 protocol based on [Grass Valley SW-P-88 Router Control Protocols](https://wwwapps.grassvalley.com/docs/Manuals/sam/Protocols%20and%20MIBs/Router%20Control%20Protocols%20SW-P-88%20Issue%204b.pdf)
+- SW-P-08 implementation informed by [Bitfocus Companion Generic SWP08 Module](https://github.com/bitfocus/companion-module-generic-swp08)
