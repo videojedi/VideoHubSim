@@ -38,6 +38,12 @@ const CMD = {
   EXTENDED_DEST_NAME_RESPONSE: 0xeb
 };
 
+// Reverse lookup for command names
+const CMD_NAMES = Object.entries(CMD).reduce((acc, [name, code]) => {
+  acc[code] = name;
+  return acc;
+}, {});
+
 class SWP08Server extends EventEmitter {
   constructor(options = {}) {
     super();
@@ -319,9 +325,10 @@ class SWP08Server extends EventEmitter {
     const matrix = data.length > 1 ? data[1] : 0;
     const level = data.length > 2 ? data[2] : 0;
 
+    const cmdName = CMD_NAMES[cmd] || 'UNKNOWN';
     this.emit('command-received', {
       clientId,
-      command: `CMD:0x${cmd.toString(16).padStart(2, '0')} Matrix:${matrix} Level:${level} Len:${data.length} Data:${data.toString('hex')}`
+      command: `${cmdName} (0x${cmd.toString(16).padStart(2, '0')}) Matrix:${matrix} Level:${level} Data:${data.toString('hex')}`
     });
 
     switch (cmd) {
