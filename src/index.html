@@ -215,6 +215,15 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
+    .output-number {
+      width: 35px;
+      font-weight: 600;
+      color: #ff6b6b;
+      text-align: right;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
     .output-label {
       width: 150px;
       font-weight: 500;
@@ -652,6 +661,10 @@
         const row = document.createElement('div');
         row.className = 'routing-row';
 
+        const outputNum = document.createElement('div');
+        outputNum.className = 'output-number';
+        outputNum.textContent = o + 1;
+
         const outputLabel = document.createElement('div');
         outputLabel.className = 'output-label';
         outputLabel.textContent = state.outputLabels[o] || `Output ${o + 1}`;
@@ -667,7 +680,7 @@
         for (let i = 0; i < state.inputs; i++) {
           const option = document.createElement('option');
           option.value = i;
-          option.textContent = state.inputLabels[i] || `Input ${i + 1}`;
+          option.textContent = `${i + 1}: ${state.inputLabels[i] || `Input ${i + 1}`}`;
           if (routing[o] === i) {
             option.selected = true;
           }
@@ -680,6 +693,7 @@
           await window.videoHub.setRoute(output, input, currentLevel);
         });
 
+        row.appendChild(outputNum);
         row.appendChild(outputLabel);
         row.appendChild(arrow);
         row.appendChild(select);
