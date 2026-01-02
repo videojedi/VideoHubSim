@@ -4,17 +4,17 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v1.1.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v1.3.0)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-1.1.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v1.1.1/Router.Protocol.Simulator-1.1.1-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 1.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v1.1.1/Router.Protocol.Simulator.Setup.1.1.1.exe) |
-| Windows Portable | [Router Protocol Simulator 1.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v1.1.1/Router.Protocol.Simulator.1.1.1.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-1.3.0-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v1.3.0/Router.Protocol.Simulator-1.3.0-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 1.3.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v1.3.0/Router.Protocol.Simulator.Setup.1.3.0.exe) |
+| Windows Portable | [Router Protocol Simulator 1.3.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v1.3.0/Router.Protocol.Simulator.1.3.0.exe) |
 
 ## Features
 
-- **Multiple Protocol Support** - Switch between VideoHub and SW-P-08 protocols
+- **Multiple Protocol Support** - Switch between VideoHub, SW-P-08, and GV Native protocols
 - **Configurable Router Size** - Simulate routers from 12x12 up to 288x288
 - **Custom TCP Port** - Configure the server port for each protocol
 - **Real-time Routing Matrix** - Interactive UI to view and change routes
@@ -25,6 +25,7 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 - **Persistent Settings** - Configuration saved across app restarts
 - **Auto-start Option** - Server can start automatically on launch
 - **Live Activity Log** - Monitor all protocol commands and client connections
+- **XY Crosspoint Grid** - Visual crosspoint matrix view for intuitive routing
 
 ## Supported Protocols
 
@@ -40,6 +41,11 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 - Standard and extended (16-bit) addressing
 - Crosspoint routing and interrogation
 - Source/destination name queries
+- Multi-level matrix support
+
+### GV Native (Series 7000)
+- TCP port 12345 (default, configurable)
+- Grass Valley native protocol for Series 7000 routers
 - Multi-level matrix support
 
 ## Installation
@@ -84,13 +90,13 @@ npm run build:win   # Windows
 
 | Setting | Description |
 |---------|-------------|
-| Protocol | VideoHub or SW-P-08 |
+| Protocol | VideoHub, SW-P-08, or GV Native |
 | Model Name | Device model reported to clients (VideoHub only) |
 | Friendly Name | Custom name reported to clients |
 | Inputs | Number of input ports (1-288) |
 | Outputs | Number of output ports (1-288) |
-| TCP Port | Server port (default: VideoHub 9990, SW-P-08 8910) |
-| Matrix Levels | Number of levels for SW-P-08 (video, audio, etc.) |
+| TCP Port | Server port (default: VideoHub 9990, SW-P-08 8910, GV Native 12345) |
+| Matrix Levels | Number of levels for SW-P-08/GV Native (video, audio, etc.) |
 | Auto-start | Automatically start server when app launches |
 
 ## Protocol Details
@@ -180,7 +186,8 @@ VideoHubSim/
     ├── preload.js          # Preload script for secure IPC
     ├── index.html          # UI and renderer process
     ├── videohub-server.js  # VideoHub protocol implementation
-    └── swp08-server.js     # SW-P-08 protocol implementation
+    ├── swp08-server.js     # SW-P-08 protocol implementation
+    └── gvnative-server.js  # GV Native protocol implementation
 ```
 
 ## Troubleshooting
@@ -210,6 +217,17 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Some clients may require specifying matrix/level 0
 
 ## Changelog
+
+### v1.3.0
+- Added GV Native (Series 7000) protocol support
+- Added XY crosspoint grid view for visual matrix routing
+- Model selection now auto-populates input/output counts
+
+### v1.2.1
+- Decode SW-P-08 command names in activity log
+
+### v1.2.0
+- Add destination and input numbers to routing matrix display
 
 ### v1.1.1
 - Fixed TCP port configuration not being applied
