@@ -424,6 +424,107 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.3);
     }
+
+    /* XY Grid */
+    .xy-grid-container {
+      overflow: auto;
+      max-height: calc(100vh - 350px);
+    }
+
+    .xy-grid {
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+
+    .xy-grid th, .xy-grid td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0;
+      text-align: center;
+    }
+
+    .xy-grid th {
+      background: rgba(0, 0, 0, 0.3);
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .xy-grid th.corner {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+    }
+
+    .xy-grid th.input-header {
+      min-width: 50px;
+      max-width: 70px;
+      height: 80px;
+      vertical-align: bottom;
+      padding-bottom: 5px;
+    }
+
+    .xy-grid th.input-header span {
+      display: block;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-height: 75px;
+      color: #2ed573;
+    }
+
+    .xy-grid td.output-label {
+      position: sticky;
+      left: 0;
+      background: rgba(0, 0, 0, 0.3);
+      font-weight: 500;
+      text-align: right;
+      padding: 0 8px;
+      min-width: 100px;
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #ff6b6b;
+      z-index: 1;
+    }
+
+    .xy-grid td.crosspoint {
+      width: 28px;
+      height: 28px;
+      padding: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .xy-grid td.crosspoint:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .xy-grid td.crosspoint .xp-dot {
+      width: 100%;
+      height: 100%;
+      border-radius: 3px;
+      background: transparent;
+      transition: background 0.15s;
+    }
+
+    .xy-grid td.crosspoint.active .xp-dot {
+      background: #2ed573;
+      box-shadow: 0 0 8px rgba(46, 213, 115, 0.5);
+    }
+
+    #xyLevelSelector {
+      display: none;
+      margin-bottom: 15px;
+    }
+
+    #xyLevelSelector.visible {
+      display: flex;
+    }
   </style>
 </head>
 <body>
@@ -449,6 +550,7 @@
             <select id="protocolSelect">
               <option value="videohub">Blackmagic VideoHub</option>
               <option value="swp08">SW-P-08 (Probel/GV)</option>
+              <option value="gvnative">GV Native (Series 7000)</option>
             </select>
           </div>
         </div>
@@ -458,11 +560,11 @@
           <div class="config-group" id="modelGroup">
             <label>Model Name</label>
             <select id="modelSelect">
-              <option value="Blackmagic Smart Videohub 12x12">Smart Videohub 12x12</option>
-              <option value="Blackmagic Smart Videohub 20x20">Smart Videohub 20x20</option>
-              <option value="Blackmagic Smart Videohub 40x40">Smart Videohub 40x40</option>
-              <option value="Blackmagic Universal Videohub 72">Universal Videohub 72</option>
-              <option value="Blackmagic Universal Videohub 288">Universal Videohub 288</option>
+              <option value="Blackmagic Smart Videohub 12x12" data-inputs="12" data-outputs="12">Smart Videohub 12x12</option>
+              <option value="Blackmagic Smart Videohub 20x20" data-inputs="20" data-outputs="20">Smart Videohub 20x20</option>
+              <option value="Blackmagic Smart Videohub 40x40" data-inputs="40" data-outputs="40">Smart Videohub 40x40</option>
+              <option value="Blackmagic Universal Videohub 72" data-inputs="72" data-outputs="72">Universal Videohub 72</option>
+              <option value="Blackmagic Universal Videohub 288" data-inputs="288" data-outputs="288">Universal Videohub 288</option>
             </select>
           </div>
           <div class="config-group">
@@ -513,6 +615,7 @@
       <main class="router-panel">
         <div class="tabs">
           <button class="tab active" data-tab="routing">Routing Matrix</button>
+          <button class="tab" data-tab="xy">XY</button>
           <button class="tab" data-tab="inputs">Input Labels</button>
           <button class="tab" data-tab="outputs">Output Labels</button>
         </div>
@@ -537,6 +640,19 @@
         <div id="outputsPanel" class="labels-panel">
           <div class="labels-grid" id="outputLabelsGrid">
             <!-- Output label cards will be generated here -->
+          </div>
+        </div>
+
+        <div id="xyPanel" class="labels-panel">
+          <div class="level-selector" id="xyLevelSelector">
+            <label>Matrix Level:</label>
+            <select id="xyLevelSelect"></select>
+            <span class="level-indicator" id="xyLevelIndicator">Level 1: Video</span>
+          </div>
+          <div class="xy-grid-container">
+            <table class="xy-grid" id="xyGrid">
+              <!-- XY grid will be generated here -->
+            </table>
           </div>
         </div>
       </main>
@@ -621,8 +737,8 @@
     }
 
     function renderLevelSelector() {
-      // Only show for SW-P-08 with multiple levels
-      const showLevels = currentProtocol === 'swp08' && state.levels > 1;
+      // Only show for SW-P-08 or GV Native with multiple levels
+      const showLevels = (currentProtocol === 'swp08' || currentProtocol === 'gvnative') && state.levels > 1;
       levelSelector.classList.toggle('visible', showLevels);
 
       if (showLevels) {
@@ -646,8 +762,8 @@
     }
 
     function getCurrentRouting() {
-      // For SW-P-08, use the routing for the current level
-      if (currentProtocol === 'swp08' && state.allRouting && state.allRouting[currentLevel]) {
+      // For SW-P-08 or GV Native, use the routing for the current level
+      if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && state.allRouting && state.allRouting[currentLevel]) {
         return state.allRouting[currentLevel];
       }
       return state.routing;
@@ -755,11 +871,75 @@
       }
     }
 
+    function renderXYGrid() {
+      const xyGrid = document.getElementById('xyGrid');
+      const xyLevelSelector = document.getElementById('xyLevelSelector');
+      const xyLevelSelect = document.getElementById('xyLevelSelect');
+      const xyLevelIndicator = document.getElementById('xyLevelIndicator');
+
+      // Show level selector for multi-level protocols
+      const showLevels = (currentProtocol === 'swp08' || currentProtocol === 'gvnative') && state.levels > 1;
+      xyLevelSelector.classList.toggle('visible', showLevels);
+
+      if (showLevels) {
+        xyLevelSelect.innerHTML = '';
+        for (let l = 0; l < state.levels; l++) {
+          const option = document.createElement('option');
+          option.value = l;
+          option.textContent = state.levelNames?.[l] || `Level ${l + 1}`;
+          if (l === currentLevel) option.selected = true;
+          xyLevelSelect.appendChild(option);
+        }
+        const levelName = state.levelNames?.[currentLevel] || `Level ${currentLevel + 1}`;
+        xyLevelIndicator.textContent = `Level ${currentLevel + 1}: ${levelName}`;
+      }
+
+      const routing = getCurrentRouting();
+
+      // Build table
+      let html = '<thead><tr><th class="corner"></th>';
+
+      // Input headers
+      for (let i = 0; i < state.inputs; i++) {
+        const label = state.inputLabels[i] || `Input ${i + 1}`;
+        html += `<th class="input-header"><span title="${label}">${label}</span></th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      // Output rows with crosspoints
+      for (let o = 0; o < state.outputs; o++) {
+        const outputLabel = state.outputLabels[o] || `Output ${o + 1}`;
+        html += `<tr><td class="output-label" title="${outputLabel}">${outputLabel}</td>`;
+
+        for (let i = 0; i < state.inputs; i++) {
+          const isActive = routing[o] === i;
+          html += `<td class="crosspoint ${isActive ? 'active' : ''}" data-output="${o}" data-input="${i}"><div class="xp-dot"></div></td>`;
+        }
+        html += '</tr>';
+      }
+      html += '</tbody>';
+
+      xyGrid.innerHTML = html;
+
+      // Add click handlers
+      xyGrid.querySelectorAll('.crosspoint').forEach(cell => {
+        cell.addEventListener('click', async () => {
+          const output = parseInt(cell.dataset.output);
+          const input = parseInt(cell.dataset.input);
+          await window.videoHub.setRoute(output, input, currentLevel);
+        });
+      });
+    }
+
     function renderAll() {
       renderLevelSelector();
       renderRoutingGrid();
       renderInputLabels();
       renderOutputLabels();
+      // Only render XY if that tab is active
+      if (document.getElementById('xyPanel').classList.contains('active')) {
+        renderXYGrid();
+      }
     }
 
     function updateProtocolUI(protocol, setDefaults = false) {
@@ -786,6 +966,16 @@
         }
         document.getElementById('levelCount').value = state.levels || 1;
         renderLevelSelector();
+      } else if (protocol === 'gvnative') {
+        appTitle.textContent = 'GV Native Simulator';
+        modelGroup.style.display = 'none';
+        levelsGroup.style.display = 'block';
+        if (setDefaults) {
+          document.getElementById('portNumber').value = '12345';
+          document.getElementById('friendlyName').value = 'GV Native Simulator';
+        }
+        document.getElementById('levelCount').value = state.levels || 1;
+        renderLevelSelector();
       }
     }
 
@@ -799,6 +989,10 @@
         document.getElementById('routingPanel').style.display = tabName === 'routing' ? 'block' : 'none';
         document.getElementById('inputsPanel').classList.toggle('active', tabName === 'inputs');
         document.getElementById('outputsPanel').classList.toggle('active', tabName === 'outputs');
+        document.getElementById('xyPanel').classList.toggle('active', tabName === 'xy');
+        if (tabName === 'xy') {
+          renderXYGrid();
+        }
       });
     });
 
@@ -857,7 +1051,8 @@
           state = result.state;
           updateProtocolUI(newProtocol, true);  // Set defaults when user changes protocol
           renderAll();
-          log(`Switched to ${newProtocol === 'videohub' ? 'VideoHub' : 'SW-P-08'} protocol`, 'success');
+          const protocolNames = { videohub: 'VideoHub', swp08: 'SW-P-08', gvnative: 'GV Native' };
+          log(`Switched to ${protocolNames[newProtocol] || newProtocol} protocol`, 'success');
         } else {
           log(`Failed to switch protocol: ${result.error}`, 'error');
           protocolSelect.value = currentProtocol;
@@ -869,8 +1064,26 @@
       currentLevel = parseInt(levelSelect.value);
       updateLevelIndicator();
       renderRoutingGrid();
+      renderXYGrid();
       const levelName = state.levelNames?.[currentLevel] || `Level ${currentLevel + 1}`;
       log(`Switched to level ${currentLevel + 1}: ${levelName}`, 'info');
+    });
+
+    document.getElementById('xyLevelSelect').addEventListener('change', (e) => {
+      currentLevel = parseInt(e.target.value);
+      updateLevelIndicator();
+      renderRoutingGrid();
+      renderXYGrid();
+      const levelName = state.levelNames?.[currentLevel] || `Level ${currentLevel + 1}`;
+      log(`Switched to level ${currentLevel + 1}: ${levelName}`, 'info');
+    });
+
+    document.getElementById('modelSelect').addEventListener('change', (e) => {
+      const selected = e.target.selectedOptions[0];
+      const inputs = selected.dataset.inputs;
+      const outputs = selected.dataset.outputs;
+      if (inputs) document.getElementById('inputCount').value = inputs;
+      if (outputs) document.getElementById('outputCount').value = outputs;
     });
 
     // IPC Event Listeners
@@ -902,7 +1115,7 @@
       routeChangeCount += changes.length;
       document.getElementById('routeCount').textContent = routeChangeCount;
       changes.forEach(c => {
-        const levelInfo = (currentProtocol === 'swp08' && c.level !== undefined)
+        const levelInfo = ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && c.level !== undefined)
           ? ` [Level ${c.level + 1}]`
           : '';
         log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}${levelInfo}`, 'info');

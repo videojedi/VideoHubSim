@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const VideoHubServer = require('./videohub-server');
 const SWP08Server = require('./swp08-server');
+const GVNativeServer = require('./gvnative-server');
 
 let mainWindow;
 let routerServer;
@@ -147,6 +148,15 @@ function createServer(protocol, config = {}) {
       modelName: config.modelName || 'SW-P-08 Router',
       friendlyName: config.friendlyName || 'SWP08 Simulator'
     });
+  } else if (protocol === 'gvnative') {
+    return new GVNativeServer({
+      port: config.port || 12345,
+      inputs: defaultConfig.inputs,
+      outputs: defaultConfig.outputs,
+      levels: config.levels || 1,
+      modelName: config.modelName || 'GV Native Router',
+      friendlyName: config.friendlyName || 'GV Native Simulator'
+    });
   } else {
     return new VideoHubServer({
       port: config.port || 9990,
@@ -195,14 +205,14 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle('get-routing-for-level', (event, level) => {
-    if (currentProtocol === 'swp08' && routerServer.getRoutingForLevel) {
+    if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && routerServer.getRoutingForLevel) {
       return routerServer.getRoutingForLevel(level);
     }
     return routerServer.getState().routing;
   });
 
   ipcMain.handle('set-level-name', (event, level, name) => {
-    if (currentProtocol === 'swp08' && routerServer.setLevelName) {
+    if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && routerServer.setLevelName) {
       return routerServer.setLevelName(level, name);
     }
     return false;
