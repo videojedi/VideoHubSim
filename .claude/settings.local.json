@@ -44,7 +44,17 @@
       "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator-1.1.0-universal.dmg.blockmap\")",
       "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator-1.2.0-universal.dmg\" )",
       "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator Setup 1.2.0.exe\" )",
-      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator 1.2.0.exe\" )"
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator 1.2.0.exe\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator-1.2.1-universal.dmg\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator Setup 1.2.1.exe\" )",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator 1.2.1.exe\" )",
+      "Bash(npm run dev:*)",
+      "Bash(echo:*)",
+      "Bash(xcrun notarytool:*)",
+      "Bash(security find-generic-password:*)",
+      "Bash(xcrun stapler:*)",
+      "Bash(\"/Users/richard/Documents/VideoHubSim/dist/Router Protocol Simulator-1.3.0-universal.dmg\" )",
+      "Bash(git reset:*)"
     ]
   }
 }

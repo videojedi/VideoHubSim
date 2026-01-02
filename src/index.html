@@ -525,6 +525,32 @@
     #xyLevelSelector.visible {
       display: flex;
     }
+
+    .xy-grid th.input-header.highlight {
+      background: rgba(46, 213, 115, 0.25);
+    }
+
+    .xy-grid th.input-header.highlight span {
+      color: #fff;
+    }
+
+    .xy-grid td.output-label.highlight {
+      background: rgba(255, 107, 107, 0.25);
+      color: #fff;
+    }
+
+    .xy-grid td.crosspoint.drag-preview {
+      background: rgba(46, 213, 115, 0.3);
+    }
+
+    .xy-grid td.crosspoint.drag-preview .xp-dot {
+      background: rgba(46, 213, 115, 0.6);
+      box-shadow: 0 0 4px rgba(46, 213, 115, 0.4);
+    }
+
+    .xy-grid.dragging {
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -902,14 +928,14 @@
       // Input headers
       for (let i = 0; i < state.inputs; i++) {
         const label = state.inputLabels[i] || `Input ${i + 1}`;
-        html += `<th class="input-header"><span title="${label}">${label}</span></th>`;
+        html += `<th class="input-header" data-input="${i}"><span title="${label}">${label}</span></th>`;
       }
       html += '</tr></thead><tbody>';
 
       // Output rows with crosspoints
       for (let o = 0; o < state.outputs; o++) {
         const outputLabel = state.outputLabels[o] || `Output ${o + 1}`;
-        html += `<tr><td class="output-label" title="${outputLabel}">${outputLabel}</td>`;
+        html += `<tr data-output="${o}"><td class="output-label" data-output="${o}" title="${outputLabel}">${outputLabel}</td>`;
 
         for (let i = 0; i < state.inputs; i++) {
           const isActive = routing[o] === i;
@@ -921,13 +947,144 @@
 
       xyGrid.innerHTML = html;
 
-      // Add click handlers
-      xyGrid.querySelectorAll('.crosspoint').forEach(cell => {
-        cell.addEventListener('click', async () => {
-          const output = parseInt(cell.dataset.output);
-          const input = parseInt(cell.dataset.input);
-          await window.videoHub.setRoute(output, input, currentLevel);
+      // Drag state for sequential routing
+      let dragStart = null;
+      let isDragging = false;
+
+      function clearDragPreview() {
+        xyGrid.querySelectorAll('.crosspoint.drag-preview').forEach(c => c.classList.remove('drag-preview'));
+        xyGrid.querySelectorAll('.input-header.highlight, .output-label.highlight').forEach(el => el.classList.remove('highlight'));
+      }
+
+      function calculateDragRoutes(start, end) {
+        // Calculate sequential 1:1 routes from start to end
+        const routes = [];
+        const outputStart = start.output;
+        const outputEnd = end.output;
+        const inputStart = start.input;
+        const inputEnd = end.input;
+
+        const outputStep = outputEnd >= outputStart ? 1 : -1;
+        const inputStep = inputEnd >= inputStart ? 1 : -1;
+        const outputCount = Math.abs(outputEnd - outputStart) + 1;
+        const inputCount = Math.abs(inputEnd - inputStart) + 1;
+
+        // Use the larger range to determine number of routes
+        const routeCount = Math.max(outputCount, inputCount);
+
+        for (let i = 0; i < routeCount; i++) {
+          // For vertical drag (same input), use same input for all
+          // For diagonal drag, step through both
+          const output = outputStart + (i < outputCount ? i * outputStep : (outputCount - 1) * outputStep);
+          const input = inputStart + (i < inputCount ? i * inputStep : (inputCount - 1) * inputStep);
+
+          // Clamp to valid range
+          if (output >= 0 && output < state.outputs && input >= 0 && input < state.inputs) {
+            routes.push({ output, input });
+          }
+        }
+        return routes;
+      }
+
+      function updateDragPreview(start, end) {
+        clearDragPreview();
+        if (!start || !end) return;
+
+        const routes = calculateDragRoutes(start, end);
+        routes.forEach(({ output, input }) => {
+          const cell = xyGrid.querySelector(`.crosspoint[data-output="${output}"][data-input="${input}"]`);
+          if (cell) cell.classList.add('drag-preview');
+
+          const inputHeader = xyGrid.querySelector(`th.input-header[data-input="${input}"]`);
+          const outputLabel = xyGrid.querySelector(`td.output-label[data-output="${output}"]`);
+          if (inputHeader) inputHeader.classList.add('highlight');
+          if (outputLabel) outputLabel.classList.add('highlight');
         });
+      }
+
+      async function applyDragRoutes(start, end) {
+        const routes = calculateDragRoutes(start, end);
+        for (const { output, input } of routes) {
+          await window.videoHub.setRoute(output, input, currentLevel);
+        }
+      }
+
+      // Add event handlers
+      xyGrid.querySelectorAll('.crosspoint').forEach(cell => {
+        cell.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          dragStart = {
+            output: parseInt(cell.dataset.output),
+            input: parseInt(cell.dataset.input)
+          };
+          isDragging = true;
+          xyGrid.classList.add('dragging');
+          updateDragPreview(dragStart, dragStart);
+        });
+
+        cell.addEventListener('mouseenter', () => {
+          const input = cell.dataset.input;
+          const output = cell.dataset.output;
+
+          if (isDragging && dragStart) {
+            // Update drag preview
+            updateDragPreview(dragStart, { output: parseInt(output), input: parseInt(input) });
+          } else {
+            // Normal hover highlight
+            const inputHeader = xyGrid.querySelector(`th.input-header[data-input="${input}"]`);
+            const outputLabel = xyGrid.querySelector(`td.output-label[data-output="${output}"]`);
+            if (inputHeader) inputHeader.classList.add('highlight');
+            if (outputLabel) outputLabel.classList.add('highlight');
+          }
+        });
+
+        cell.addEventListener('mouseleave', () => {
+          if (!isDragging) {
+            const input = cell.dataset.input;
+            const output = cell.dataset.output;
+            const inputHeader = xyGrid.querySelector(`th.input-header[data-input="${input}"]`);
+            const outputLabel = xyGrid.querySelector(`td.output-label[data-output="${output}"]`);
+            if (inputHeader) inputHeader.classList.remove('highlight');
+            if (outputLabel) outputLabel.classList.remove('highlight');
+          }
+        });
+
+        cell.addEventListener('mouseup', async () => {
+          if (isDragging && dragStart) {
+            const dragEnd = {
+              output: parseInt(cell.dataset.output),
+              input: parseInt(cell.dataset.input)
+            };
+
+            clearDragPreview();
+            xyGrid.classList.remove('dragging');
+
+            // Apply the routes
+            await applyDragRoutes(dragStart, dragEnd);
+
+            dragStart = null;
+            isDragging = false;
+          }
+        });
+      });
+
+      // Handle mouse leaving the grid or releasing outside
+      xyGrid.addEventListener('mouseleave', () => {
+        if (isDragging) {
+          clearDragPreview();
+          xyGrid.classList.remove('dragging');
+          dragStart = null;
+          isDragging = false;
+        }
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          clearDragPreview();
+          xyGrid.classList.remove('dragging');
+          dragStart = null;
+          isDragging = false;
+        }
       });
     }
 
