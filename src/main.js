@@ -19,7 +19,7 @@ let mainWindow;
 let routerServer;      // For simulator mode
 let controllerInstance; // For controller mode
 let currentProtocol = 'videohub';
-let currentMode = 'simulator';  // 'simulator' or 'controller'
+let currentMode = 'simulator';  // 'simulator', 'controller', or 'dual'
 let settings = {};
 
 // Settings file path
@@ -269,7 +269,15 @@ function setupIpcHandlers() {
     };
   });
 
-  ipcMain.handle('set-route', async (event, output, input, level = 0) => {
+  ipcMain.handle('set-route', async (event, output, input, level = 0, target) => {
+    // In dual mode, use target to determine where to route
+    if (currentMode === 'dual') {
+      if (target === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+        return controllerInstance.setRoute(output, input, level);
+      }
+      return routerServer.setRoute(output, input, level);
+    }
+    // In controller mode, always use controller if connected
     if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
       return controllerInstance.setRoute(output, input, level);
     }
@@ -463,6 +471,83 @@ function setupIpcHandlers() {
       connected: controllerInstance.isConnected(),
       host: settings.controllerHost,
       port: settings.controllerPort
+    };
+  });
+
+  // Dual mode handlers
+  ipcMain.handle('start-dual-mode', async () => {
+    try {
+      // Ensure simulator is running
+      if (!routerServer.server?.listening) {
+        await routerServer.start();
+      }
+
+      const simulatorPort = routerServer.port;
+
+      // Clean up existing controller if any
+      if (controllerInstance) {
+        controllerInstance.removeAllListeners();
+        await controllerInstance.disconnect().catch(() => {});
+      }
+
+      // Create controller pointing to local simulator
+      controllerInstance = createController(currentProtocol, {
+        host: '127.0.0.1',
+        port: simulatorPort,
+        levels: settings.levels || 1,
+        autoReconnect: true,
+        timeout: 5000
+      });
+
+      if (!controllerInstance) {
+        return { success: false, error: 'Controller not available for this protocol' };
+      }
+
+      attachControllerEvents(controllerInstance);
+
+      // Connect controller to simulator
+      await controllerInstance.connect();
+
+      return { success: true, simulatorPort };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('stop-dual-mode', async () => {
+    try {
+      // Disconnect controller
+      if (controllerInstance) {
+        await controllerInstance.disconnect().catch(() => {});
+        controllerInstance.removeAllListeners();
+        controllerInstance = null;
+      }
+
+      // Stop simulator
+      if (routerServer.server?.listening) {
+        await routerServer.stop();
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('get-simulator-state', () => {
+    return {
+      ...routerServer.getState(),
+      protocol: currentProtocol
+    };
+  });
+
+  ipcMain.handle('get-controller-state', () => {
+    if (!controllerInstance) {
+      return null;
+    }
+    return {
+      ...controllerInstance.getState(),
+      protocol: currentProtocol
     };
   });
 }

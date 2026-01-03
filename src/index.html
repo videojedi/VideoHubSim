@@ -621,6 +621,61 @@
       display: none;
     }
 
+    /* Dual Mode Config Panel */
+    #dualModeConfig {
+      display: none;
+    }
+
+    #dualModeConfig.visible {
+      display: block;
+    }
+
+    .dual-status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .dual-status-row .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4757;
+      transition: background 0.3s;
+    }
+
+    .dual-status-row .status-dot.active {
+      background: #2ed573;
+      box-shadow: 0 0 8px #2ed573;
+    }
+
+    /* Dual View Toggle */
+    #dualViewToggle {
+      display: none;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+    }
+
+    #dualViewToggle.visible {
+      display: block;
+    }
+
+    .dual-info {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .dual-info strong {
+      color: #74b9ff;
+    }
+
     /* Connection Status */
     .connection-status {
       display: flex;
@@ -719,6 +774,10 @@
               <input type="radio" name="appMode" value="controller">
               <span>Controller</span>
             </label>
+            <label>
+              <input type="radio" name="appMode" value="dual">
+              <span>Dual Test</span>
+            </label>
           </div>
         </div>
 
@@ -811,6 +870,24 @@
           <button class="btn btn-danger" id="disconnectBtn" style="width: 100%; margin-top: 10px; display: none;">Disconnect</button>
         </div>
 
+        <!-- Dual Mode Configuration -->
+        <div class="sidebar-section" id="dualModeConfig">
+          <h3>Dual Mode Testing</h3>
+          <p style="font-size: 0.8rem; color: #888; margin-bottom: 12px;">
+            Run both simulator and controller to test controller features locally.
+          </p>
+          <div class="dual-status-row">
+            <div class="status-dot" id="dualSimulatorDot"></div>
+            <span>Simulator: <span id="dualSimulatorStatus">Stopped</span></span>
+          </div>
+          <div class="dual-status-row">
+            <div class="status-dot" id="dualControllerDot"></div>
+            <span>Controller: <span id="dualControllerStatus">Disconnected</span></span>
+          </div>
+          <button class="btn btn-primary" id="startDualModeBtn" style="width: 100%; margin-top: 10px;">Start Dual Mode</button>
+          <button class="btn btn-danger" id="stopDualModeBtn" style="width: 100%; margin-top: 10px; display: none;">Stop Dual Mode</button>
+        </div>
+
         <div class="sidebar-section" id="clientsSection">
           <h3>Connected Clients</h3>
           <div id="clientList">
@@ -828,6 +905,23 @@
       </aside>
 
       <main class="router-panel">
+        <!-- Dual mode view toggle -->
+        <div id="dualViewToggle">
+          <div class="mode-selector" style="margin-bottom: 8px;">
+            <label>
+              <input type="radio" name="dualView" value="simulator" checked>
+              <span>View Simulator</span>
+            </label>
+            <label>
+              <input type="radio" name="dualView" value="controller">
+              <span>View Controller</span>
+            </label>
+          </div>
+          <div class="dual-info">
+            Routing changes will be sent to: <strong id="dualTargetIndicator">Simulator</strong>
+          </div>
+        </div>
+
         <div class="tabs">
           <button class="tab active" data-tab="routing">Routing Matrix</button>
           <button class="tab" data-tab="xy">XY</button>
@@ -936,6 +1030,21 @@
     const controllerStatusText = document.getElementById('controllerStatusText');
     const controllerLevelsGroup = document.getElementById('controllerLevelsGroup');
 
+    // Dual Mode DOM Elements
+    const dualModeConfig = document.getElementById('dualModeConfig');
+    const dualViewToggle = document.getElementById('dualViewToggle');
+    const dualSimulatorDot = document.getElementById('dualSimulatorDot');
+    const dualControllerDot = document.getElementById('dualControllerDot');
+    const dualSimulatorStatus = document.getElementById('dualSimulatorStatus');
+    const dualControllerStatus = document.getElementById('dualControllerStatus');
+    const startDualModeBtn = document.getElementById('startDualModeBtn');
+    const stopDualModeBtn = document.getElementById('stopDualModeBtn');
+    const dualTargetIndicator = document.getElementById('dualTargetIndicator');
+
+    // Dual mode state
+    let dualModeActive = false;
+    let dualViewTarget = 'simulator'; // Which state to display/control in dual mode
+
     // Logging
     function log(message, type = 'info') {
       const entry = document.createElement('div');
@@ -1041,7 +1150,9 @@
         select.addEventListener('change', async (e) => {
           const output = parseInt(e.target.dataset.output);
           const input = parseInt(e.target.value);
-          await window.videoHub.setRoute(output, input, currentLevel);
+          // In dual mode, pass the target to setRoute
+          const target = currentMode === 'dual' ? dualViewTarget : undefined;
+          await window.videoHub.setRoute(output, input, currentLevel, target);
         });
 
         row.appendChild(outputNum);
@@ -1213,8 +1324,10 @@
 
       async function applyDragRoutes(start, end) {
         const routes = calculateDragRoutes(start, end);
+        // In dual mode, pass the target to setRoute
+        const target = currentMode === 'dual' ? dualViewTarget : undefined;
         for (const { output, input } of routes) {
-          await window.videoHub.setRoute(output, input, currentLevel);
+          await window.videoHub.setRoute(output, input, currentLevel, target);
         }
       }
 
@@ -1563,21 +1676,32 @@
       // Update radio button
       document.querySelector(`input[name="appMode"][value="${mode}"]`).checked = true;
 
-      // Show/hide config panels
+      // Hide all config panels first
+      simulatorConfig.classList.add('hidden');
+      controllerConfig.classList.remove('visible');
+      dualModeConfig.classList.remove('visible');
+      dualViewToggle.classList.remove('visible');
+
+      // Show/hide config panels based on mode
       if (mode === 'simulator') {
         simulatorConfig.classList.remove('hidden');
-        controllerConfig.classList.remove('visible');
         clientsSection.style.display = 'block';
         startBtn.style.display = 'inline-block';
         stopBtn.style.display = 'inline-block';
         appTitle.textContent = getSimulatorTitle();
-      } else {
-        simulatorConfig.classList.add('hidden');
+      } else if (mode === 'controller') {
         controllerConfig.classList.add('visible');
         clientsSection.style.display = 'none';
         startBtn.style.display = 'none';
         stopBtn.style.display = 'none';
         appTitle.textContent = getControllerTitle();
+      } else if (mode === 'dual') {
+        dualModeConfig.classList.add('visible');
+        dualViewToggle.classList.add('visible');
+        clientsSection.style.display = 'block';
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
+        appTitle.textContent = 'Dual Mode - Testing';
       }
 
       // Update protocol-specific UI for controller mode
@@ -1669,10 +1793,72 @@
           if (currentMode === 'controller' && isConnected) {
             await window.videoHub.disconnectRouter();
           }
+          if (currentMode === 'dual' && dualModeActive) {
+            await window.videoHub.stopDualMode();
+            resetDualModeUI();
+          }
 
           await window.videoHub.setMode(newMode);
           updateModeUI(newMode);
           log(`Switched to ${newMode} mode`, 'success');
+        }
+      });
+    });
+
+    // Dual mode button handlers
+    startDualModeBtn.addEventListener('click', async () => {
+      log('Starting dual mode...', 'info');
+      const result = await window.videoHub.startDualMode();
+      if (result.success) {
+        dualModeActive = true;
+        dualSimulatorDot.classList.add('active');
+        dualControllerDot.classList.add('active');
+        dualSimulatorStatus.textContent = `Port ${result.simulatorPort}`;
+        dualControllerStatus.textContent = 'Connected';
+        startDualModeBtn.style.display = 'none';
+        stopDualModeBtn.style.display = 'block';
+        statusDot.classList.add('active');
+        statusText.textContent = `Dual Mode - Port ${result.simulatorPort}`;
+        log(`Dual mode started - Simulator on port ${result.simulatorPort}, Controller connected`, 'success');
+      } else {
+        log(`Failed to start dual mode: ${result.error}`, 'error');
+      }
+    });
+
+    stopDualModeBtn.addEventListener('click', async () => {
+      log('Stopping dual mode...', 'info');
+      await window.videoHub.stopDualMode();
+      resetDualModeUI();
+      log('Dual mode stopped', 'info');
+    });
+
+    function resetDualModeUI() {
+      dualModeActive = false;
+      dualSimulatorDot.classList.remove('active');
+      dualControllerDot.classList.remove('active');
+      dualSimulatorStatus.textContent = 'Stopped';
+      dualControllerStatus.textContent = 'Disconnected';
+      startDualModeBtn.style.display = 'block';
+      stopDualModeBtn.style.display = 'none';
+      statusDot.classList.remove('active');
+      statusText.textContent = 'Stopped';
+    }
+
+    // Dual view toggle - switch between viewing simulator/controller state
+    document.querySelectorAll('input[name="dualView"]').forEach(radio => {
+      radio.addEventListener('change', async (e) => {
+        dualViewTarget = e.target.value;
+        dualTargetIndicator.textContent = dualViewTarget === 'simulator' ? 'Simulator' : 'Controller';
+
+        // Refresh state from selected target
+        const newState = dualViewTarget === 'simulator'
+          ? await window.videoHub.getSimulatorState()
+          : await window.videoHub.getControllerState();
+
+        if (newState) {
+          state = newState;
+          renderAll();
+          log(`Viewing ${dualViewTarget} state`, 'info');
         }
       });
     });

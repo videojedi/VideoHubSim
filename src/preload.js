@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld('videoHub', {
   getState: () => ipcRenderer.invoke('get-state'),
 
   // Routing and labels (works in both modes)
-  setRoute: (output, input, level = 0) => ipcRenderer.invoke('set-route', output, input, level),
+  setRoute: (output, input, level = 0, target) => ipcRenderer.invoke('set-route', output, input, level, target),
   setInputLabel: (input, label) => ipcRenderer.invoke('set-input-label', input, label),
   setOutputLabel: (output, label) => ipcRenderer.invoke('set-output-label', output, label),
   getRoutingForLevel: (level) => ipcRenderer.invoke('get-routing-for-level', level),
@@ -27,6 +27,12 @@ contextBridge.exposeInMainWorld('videoHub', {
   connectRouter: (config) => ipcRenderer.invoke('connect-router', config),
   disconnectRouter: () => ipcRenderer.invoke('disconnect-router'),
   getConnectionStatus: () => ipcRenderer.invoke('get-connection-status'),
+
+  // Dual mode
+  startDualMode: () => ipcRenderer.invoke('start-dual-mode'),
+  stopDualMode: () => ipcRenderer.invoke('stop-dual-mode'),
+  getSimulatorState: () => ipcRenderer.invoke('get-simulator-state'),
+  getControllerState: () => ipcRenderer.invoke('get-controller-state'),
 
   // Server event listeners (simulator mode)
   onServerStarted: (callback) => ipcRenderer.on('server-started', (_, port) => callback(port)),
