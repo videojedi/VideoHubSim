@@ -432,18 +432,21 @@
     }
 
     .xy-grid {
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 0.75rem;
     }
 
     .xy-grid th, .xy-grid td {
       border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: none;
+      border-left: none;
       padding: 0;
       text-align: center;
     }
 
     .xy-grid th {
-      background: rgba(0, 0, 0, 0.3);
+      background: #0d1117;
       font-weight: 500;
       position: sticky;
       top: 0;
@@ -453,7 +456,23 @@
     .xy-grid th.corner {
       position: sticky;
       left: 0;
+      top: 0;
       z-index: 3;
+      background: #0d1117;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .xy-grid thead tr th:first-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .xy-grid thead tr th {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .xy-grid tbody tr td:first-child {
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .xy-grid th.input-header {
@@ -479,7 +498,7 @@
     .xy-grid td.output-label {
       position: sticky;
       left: 0;
-      background: rgba(0, 0, 0, 0.3);
+      background: #0d1117;
       font-weight: 500;
       text-align: right;
       padding: 0 8px;
@@ -527,7 +546,7 @@
     }
 
     .xy-grid th.input-header.highlight {
-      background: rgba(46, 213, 115, 0.25);
+      background: #143d28;
     }
 
     .xy-grid th.input-header.highlight span {
@@ -535,7 +554,7 @@
     }
 
     .xy-grid td.output-label.highlight {
-      background: rgba(255, 107, 107, 0.25);
+      background: #3d1414;
       color: #fff;
     }
 
@@ -550,6 +569,126 @@
 
     .xy-grid.dragging {
       user-select: none;
+    }
+
+    /* Mode Selector */
+    .mode-selector {
+      display: flex;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 6px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .mode-selector label {
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      color: #888;
+    }
+
+    .mode-selector input {
+      display: none;
+    }
+
+    .mode-selector input:checked + span {
+      background: #4a69bd;
+      color: #fff;
+      display: block;
+      border-radius: 4px;
+      margin: -8px -12px;
+      padding: 8px 12px;
+    }
+
+    .mode-selector label:hover {
+      color: #fff;
+    }
+
+    /* Controller Config Panel */
+    #controllerConfig {
+      display: none;
+    }
+
+    #controllerConfig.visible {
+      display: block;
+    }
+
+    #simulatorConfig.hidden {
+      display: none;
+    }
+
+    /* Connection Status */
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .connection-status .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4757;
+      transition: background 0.3s;
+    }
+
+    .connection-status .status-dot.connected {
+      background: #2ed573;
+      box-shadow: 0 0 8px #2ed573;
+    }
+
+    .connection-status .status-dot.connecting {
+      background: #ffa502;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .connection-status .status-text {
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    .connection-status .status-text.connected {
+      color: #2ed573;
+    }
+
+    .connection-status .status-text.connecting {
+      color: #ffa502;
+    }
+
+    /* Controller Mode Notice */
+    .controller-notice {
+      display: none;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      background: rgba(255, 165, 2, 0.15);
+      border: 1px solid rgba(255, 165, 2, 0.3);
+      border-radius: 6px;
+      color: #ffa502;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .controller-notice.visible {
+      display: block;
+    }
+
+    .controller-notice strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #ffb84d;
     }
   </style>
 </head>
@@ -570,6 +709,20 @@
     <div class="main-content">
       <aside class="sidebar">
         <div class="sidebar-section">
+          <h3>Mode</h3>
+          <div class="mode-selector">
+            <label>
+              <input type="radio" name="appMode" value="simulator" checked>
+              <span>Simulator</span>
+            </label>
+            <label>
+              <input type="radio" name="appMode" value="controller">
+              <span>Controller</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
           <h3>Protocol</h3>
           <div class="config-group">
             <label>Router Protocol</label>
@@ -581,8 +734,9 @@
           </div>
         </div>
 
-        <div class="sidebar-section">
-          <h3>Configuration</h3>
+        <!-- Simulator Configuration -->
+        <div class="sidebar-section" id="simulatorConfig">
+          <h3>Simulator Configuration</h3>
           <div class="config-group" id="modelGroup">
             <label>Model Name</label>
             <select id="modelSelect">
@@ -622,7 +776,42 @@
           <button class="btn btn-primary" id="applyConfig" style="width: 100%; margin-top: 10px;">Apply Configuration</button>
         </div>
 
-        <div class="sidebar-section">
+        <!-- Controller Configuration -->
+        <div class="sidebar-section" id="controllerConfig">
+          <h3>Controller Configuration</h3>
+          <div class="connection-status">
+            <div class="status-dot" id="controllerStatusDot"></div>
+            <span class="status-text" id="controllerStatusText">Disconnected</span>
+          </div>
+          <div class="config-group">
+            <label>Router Host / IP</label>
+            <input type="text" id="controllerHost" value="192.168.1.100" placeholder="192.168.1.100">
+          </div>
+          <div class="config-group">
+            <label>Router Port</label>
+            <input type="number" id="controllerPort" value="9990" min="1" max="65535">
+          </div>
+          <div class="config-group" id="controllerLevelsGroup" style="display: none;">
+            <label>Matrix Levels</label>
+            <input type="number" id="controllerLevelCount" value="1" min="1" max="16">
+          </div>
+          <div class="config-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="autoReconnect" style="width: auto;" checked>
+              Auto-reconnect on disconnect
+            </label>
+          </div>
+          <div class="config-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="autoConnect" style="width: auto;">
+              Auto-connect on launch
+            </label>
+          </div>
+          <button class="btn btn-primary" id="connectBtn" style="width: 100%; margin-top: 10px;">Connect</button>
+          <button class="btn btn-danger" id="disconnectBtn" style="width: 100%; margin-top: 10px; display: none;">Disconnect</button>
+        </div>
+
+        <div class="sidebar-section" id="clientsSection">
           <h3>Connected Clients</h3>
           <div id="clientList">
             <p class="no-clients">No clients connected</p>
@@ -658,12 +847,20 @@
         </div>
 
         <div id="inputsPanel" class="labels-panel">
+          <div class="controller-notice" id="inputLabelsNotice">
+            <strong>Controller Mode - Read Only</strong>
+            Labels are received from the router and cannot be changed locally. Any local changes will be overwritten when the router sends label updates.
+          </div>
           <div class="labels-grid" id="inputLabelsGrid">
             <!-- Input label cards will be generated here -->
           </div>
         </div>
 
         <div id="outputsPanel" class="labels-panel">
+          <div class="controller-notice" id="outputLabelsNotice">
+            <strong>Controller Mode - Read Only</strong>
+            Labels are received from the router and cannot be changed locally. Any local changes will be overwritten when the router sends label updates.
+          </div>
           <div class="labels-grid" id="outputLabelsGrid">
             <!-- Output label cards will be generated here -->
           </div>
@@ -707,6 +904,9 @@
     let routeChangeCount = 0;
     let currentProtocol = 'videohub';
     let currentLevel = 0;
+    let currentMode = 'simulator';  // 'simulator' or 'controller'
+    let isConnected = false;
+    let isConnecting = false;
 
     // DOM Elements
     const startBtn = document.getElementById('startBtn');
@@ -725,7 +925,16 @@
     const levelSelector = document.getElementById('levelSelector');
     const levelSelect = document.getElementById('levelSelect');
     const levelIndicator = document.getElementById('levelIndicator');
-    const levelsGroup = document.getElementById('levelsGroup');
+
+    // Mode and Controller DOM Elements
+    const simulatorConfig = document.getElementById('simulatorConfig');
+    const controllerConfig = document.getElementById('controllerConfig');
+    const clientsSection = document.getElementById('clientsSection');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const controllerStatusDot = document.getElementById('controllerStatusDot');
+    const controllerStatusText = document.getElementById('controllerStatusText');
+    const controllerLevelsGroup = document.getElementById('controllerLevelsGroup');
 
     // Logging
     function log(message, type = 'info') {
@@ -1099,6 +1308,153 @@
       }
     }
 
+    // Incremental update functions for better performance with large routers
+    function updateRoutingIncremental(changes) {
+      const routing = getCurrentRouting();
+      const xyPanel = document.getElementById('xyPanel');
+      const xyActive = xyPanel.classList.contains('active');
+
+      for (const change of changes) {
+        // Skip if not on current level for multi-level protocols
+        if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') &&
+            change.level !== undefined && change.level !== currentLevel) {
+          continue;
+        }
+
+        const output = change.output;
+        const input = change.input;
+
+        // Update routing grid select
+        const select = routingGrid.querySelector(`select[data-output="${output}"]`);
+        if (select && select.value !== String(input)) {
+          select.value = input;
+        }
+
+        // Update XY grid if visible
+        if (xyActive) {
+          const xyGrid = document.getElementById('xyGrid');
+          // Clear old active crosspoint for this output
+          const oldActive = xyGrid.querySelector(`td.crosspoint.active[data-output="${output}"]`);
+          if (oldActive) {
+            oldActive.classList.remove('active');
+          }
+          // Set new active crosspoint
+          const newActive = xyGrid.querySelector(`td.crosspoint[data-output="${output}"][data-input="${input}"]`);
+          if (newActive) {
+            newActive.classList.add('active');
+          }
+        }
+
+        // Update local state
+        if (currentProtocol === 'swp08' || currentProtocol === 'gvnative') {
+          if (state.allRouting && state.allRouting[currentLevel]) {
+            state.allRouting[currentLevel][output] = input;
+          }
+        } else {
+          state.routing[output] = input;
+        }
+      }
+    }
+
+    function updateInputLabelsIncremental(changes) {
+      // For large batches, just update state and skip DOM updates
+      // The DOM will be updated on next full render or tab switch
+      const isLargeBatch = changes.length > 50;
+
+      for (const change of changes) {
+        const index = change.index;
+        const label = change.label;
+
+        // Update state
+        state.inputLabels[index] = label;
+
+        if (isLargeBatch) continue;
+
+        // Update input label field
+        const labelInput = inputLabelsGrid.querySelector(`input[data-input="${index}"]`);
+        if (labelInput && labelInput.value !== label && document.activeElement !== labelInput) {
+          labelInput.value = label;
+        }
+
+        // Update XY grid header if visible
+        const xyPanel = document.getElementById('xyPanel');
+        if (xyPanel.classList.contains('active')) {
+          const header = document.querySelector(`th.input-header[data-input="${index}"] span`);
+          if (header) {
+            header.textContent = label;
+            header.title = label;
+          }
+        }
+      }
+
+      // For large batches or any batch, defer routing grid option updates
+      // These are expensive and can be done on next render
+      if (changes.length > 0 && !isLargeBatch) {
+        // Only update options for small batches - otherwise too expensive
+        for (const change of changes) {
+          const index = change.index;
+          const label = change.label;
+          // Update just the visible routing options - use querySelectorAll more efficiently
+          const options = routingGrid.querySelectorAll(`option[value="${index}"]`);
+          options.forEach(option => {
+            option.textContent = `${index + 1}: ${label}`;
+          });
+        }
+      }
+    }
+
+    function updateOutputLabelsIncremental(changes) {
+      // For large batches, just update state and skip DOM updates
+      const isLargeBatch = changes.length > 50;
+
+      for (const change of changes) {
+        const index = change.index;
+        const label = change.label;
+
+        // Update state
+        state.outputLabels[index] = label;
+
+        if (isLargeBatch) continue;
+
+        // Update output label field
+        const labelInput = outputLabelsGrid.querySelector(`input[data-output="${index}"]`);
+        if (labelInput && labelInput.value !== label && document.activeElement !== labelInput) {
+          labelInput.value = label;
+        }
+
+        // Update routing grid label
+        const row = routingGrid.querySelector(`.routing-row:nth-child(${index + 1})`);
+        if (row) {
+          const labelDiv = row.querySelector('.output-label');
+          if (labelDiv) {
+            labelDiv.textContent = label;
+          }
+        }
+
+        // Update XY grid row label if visible
+        const xyPanel = document.getElementById('xyPanel');
+        if (xyPanel.classList.contains('active')) {
+          const rowLabel = document.querySelector(`td.output-label[data-output="${index}"]`);
+          if (rowLabel) {
+            rowLabel.textContent = label;
+            rowLabel.title = label;
+          }
+        }
+      }
+    }
+
+    // Debounced render for state updates that require full re-render
+    let renderDebounceTimer = null;
+    function debouncedRenderAll(delay = 100) {
+      if (renderDebounceTimer) {
+        clearTimeout(renderDebounceTimer);
+      }
+      renderDebounceTimer = setTimeout(() => {
+        renderAll();
+        renderDebounceTimer = null;
+      }, delay);
+    }
+
     function updateProtocolUI(protocol, setDefaults = false) {
       currentProtocol = protocol;
       protocolSelect.value = protocol;
@@ -1200,6 +1556,154 @@
       }
     });
 
+    // Mode switching
+    function updateModeUI(mode) {
+      currentMode = mode;
+
+      // Update radio button
+      document.querySelector(`input[name="appMode"][value="${mode}"]`).checked = true;
+
+      // Show/hide config panels
+      if (mode === 'simulator') {
+        simulatorConfig.classList.remove('hidden');
+        controllerConfig.classList.remove('visible');
+        clientsSection.style.display = 'block';
+        startBtn.style.display = 'inline-block';
+        stopBtn.style.display = 'inline-block';
+        appTitle.textContent = getSimulatorTitle();
+      } else {
+        simulatorConfig.classList.add('hidden');
+        controllerConfig.classList.add('visible');
+        clientsSection.style.display = 'none';
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
+        appTitle.textContent = getControllerTitle();
+      }
+
+      // Update protocol-specific UI for controller mode
+      updateControllerProtocolUI();
+
+      // Update label notices visibility
+      updateLabelNotices();
+    }
+
+    function getSimulatorTitle() {
+      const titles = { videohub: 'VideoHub Simulator', swp08: 'SW-P-08 Simulator', gvnative: 'GV Native Simulator' };
+      return titles[currentProtocol] || 'Router Protocol Simulator';
+    }
+
+    function getControllerTitle() {
+      const titles = { videohub: 'VideoHub Controller', swp08: 'SW-P-08 Controller', gvnative: 'GV Native Controller' };
+      return titles[currentProtocol] || 'Router Controller';
+    }
+
+    function updateControllerProtocolUI() {
+      const defaultPorts = { videohub: 9990, swp08: 8910, gvnative: 12345 };
+      const showLevels = currentProtocol === 'swp08' || currentProtocol === 'gvnative';
+
+      // Update controller port default
+      document.getElementById('controllerPort').placeholder = defaultPorts[currentProtocol] || 9990;
+
+      // Show/hide levels for controller
+      controllerLevelsGroup.style.display = showLevels ? 'block' : 'none';
+
+      // Update label notices
+      updateLabelNotices();
+    }
+
+    function updateLabelNotices() {
+      // Show notices in controller mode for SW-P-08 and GV Native
+      const showNotice = currentMode === 'controller' && (currentProtocol === 'swp08' || currentProtocol === 'gvnative');
+      document.getElementById('inputLabelsNotice').classList.toggle('visible', showNotice);
+      document.getElementById('outputLabelsNotice').classList.toggle('visible', showNotice);
+    }
+
+    function updateControllerStatus(status, message) {
+      controllerStatusDot.className = 'status-dot';
+      controllerStatusText.className = 'status-text';
+
+      if (status === 'connected') {
+        controllerStatusDot.classList.add('connected');
+        controllerStatusText.classList.add('connected');
+        controllerStatusText.textContent = message || 'Connected';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'block';
+        statusDot.classList.add('active');
+        statusText.textContent = message || 'Connected';
+        isConnected = true;
+        isConnecting = false;
+      } else if (status === 'connecting') {
+        controllerStatusDot.classList.add('connecting');
+        controllerStatusText.classList.add('connecting');
+        controllerStatusText.textContent = message || 'Connecting...';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'block';
+        disconnectBtn.textContent = 'Cancel';
+        isConnecting = true;
+      } else if (status === 'reconnecting') {
+        controllerStatusDot.classList.add('connecting');
+        controllerStatusText.classList.add('connecting');
+        controllerStatusText.textContent = message || 'Reconnecting...';
+        isConnecting = true;
+      } else {
+        controllerStatusText.textContent = message || 'Disconnected';
+        connectBtn.style.display = 'block';
+        disconnectBtn.style.display = 'none';
+        disconnectBtn.textContent = 'Disconnect';
+        statusDot.classList.remove('active');
+        statusText.textContent = 'Disconnected';
+        isConnected = false;
+        isConnecting = false;
+      }
+    }
+
+    // Mode selector event listeners
+    document.querySelectorAll('input[name="appMode"]').forEach(radio => {
+      radio.addEventListener('change', async (e) => {
+        const newMode = e.target.value;
+        if (newMode !== currentMode) {
+          // Stop current server/connection before switching
+          if (currentMode === 'simulator' && statusDot.classList.contains('active')) {
+            await window.videoHub.stopServer();
+          }
+          if (currentMode === 'controller' && isConnected) {
+            await window.videoHub.disconnectRouter();
+          }
+
+          await window.videoHub.setMode(newMode);
+          updateModeUI(newMode);
+          log(`Switched to ${newMode} mode`, 'success');
+        }
+      });
+    });
+
+    // Controller connect/disconnect buttons
+    connectBtn.addEventListener('click', async () => {
+      const host = document.getElementById('controllerHost').value;
+      const port = parseInt(document.getElementById('controllerPort').value);
+      const levels = parseInt(document.getElementById('controllerLevelCount').value) || 1;
+
+      if (!host) {
+        log('Please enter a router host/IP address', 'error');
+        return;
+      }
+
+      updateControllerStatus('connecting', `Connecting to ${host}:${port}...`);
+      log(`Connecting to ${host}:${port}...`, 'info');
+
+      const result = await window.videoHub.connectRouter({ host, port, levels });
+      if (!result.success) {
+        updateControllerStatus('disconnected', 'Connection failed');
+        log(`Connection failed: ${result.error}`, 'error');
+      }
+    });
+
+    disconnectBtn.addEventListener('click', async () => {
+      await window.videoHub.disconnectRouter();
+      updateControllerStatus('disconnected');
+      log('Disconnected from router', 'info');
+    });
+
     protocolSelect.addEventListener('change', async () => {
       const newProtocol = protocolSelect.value;
       if (newProtocol !== currentProtocol) {
@@ -1207,9 +1711,13 @@
         if (result.success) {
           state = result.state;
           updateProtocolUI(newProtocol, true);  // Set defaults when user changes protocol
+          updateControllerProtocolUI();
           renderAll();
           const protocolNames = { videohub: 'VideoHub', swp08: 'SW-P-08', gvnative: 'GV Native' };
           log(`Switched to ${protocolNames[newProtocol] || newProtocol} protocol`, 'success');
+
+          // Update title based on mode
+          appTitle.textContent = currentMode === 'simulator' ? getSimulatorTitle() : getControllerTitle();
         } else {
           log(`Failed to switch protocol: ${result.error}`, 'error');
           protocolSelect.value = currentProtocol;
@@ -1277,16 +1785,67 @@
           : '';
         log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}${levelInfo}`, 'info');
       });
+      // Use incremental update for routing changes
+      updateRoutingIncremental(changes);
     });
 
     window.videoHub.onStateUpdated((newState) => {
+      // Check if dimensions changed - requires full re-render
+      const dimensionsChanged = newState.inputs !== state.inputs || newState.outputs !== state.outputs;
       state = newState;
-      renderAll();
+      if (dimensionsChanged) {
+        renderAll();
+      }
+      // Otherwise, incremental updates from specific events are sufficient
+    });
+
+    window.videoHub.onInputLabelsChanged((changes) => {
+      updateInputLabelsIncremental(changes);
+    });
+
+    window.videoHub.onOutputLabelsChanged((changes) => {
+      updateOutputLabelsIncremental(changes);
     });
 
     window.videoHub.onCommandReceived((data) => {
       const cmdPreview = data.command.split('\n')[0];
       log(`Command from ${data.clientId}: ${cmdPreview}`, 'info');
+    });
+
+    // Controller event listeners
+    window.videoHub.onRouterConnected((data) => {
+      const host = document.getElementById('controllerHost').value;
+      const port = document.getElementById('controllerPort').value;
+      updateControllerStatus('connected', `Connected to ${host}:${port}`);
+      log(`Connected to router at ${host}:${port}`, 'success');
+
+      // Update state from router
+      if (data && data.state) {
+        state = data.state;
+        renderAll();
+      }
+    });
+
+    window.videoHub.onRouterDisconnected(() => {
+      const autoReconnect = document.getElementById('autoReconnect').checked;
+      if (autoReconnect && isConnected) {
+        updateControllerStatus('reconnecting', 'Connection lost, reconnecting...');
+        log('Connection lost, attempting to reconnect...', 'warning');
+      } else {
+        updateControllerStatus('disconnected');
+        log('Disconnected from router', 'info');
+      }
+    });
+
+    window.videoHub.onRouterError((error) => {
+      log(`Router error: ${error}`, 'error');
+      if (!isConnected) {
+        updateControllerStatus('disconnected', 'Connection failed');
+      }
+    });
+
+    window.videoHub.onRouterReconnecting((attempt) => {
+      updateControllerStatus('reconnecting', `Reconnecting (attempt ${attempt})...`);
     });
 
     // Initialize
@@ -1296,6 +1855,7 @@
 
       // Apply saved settings to UI
       if (savedSettings) {
+        // Simulator settings
         document.getElementById('inputCount').value = savedSettings.inputs || 12;
         document.getElementById('outputCount').value = savedSettings.outputs || 12;
         document.getElementById('portNumber').value = savedSettings.port || 9990;
@@ -1312,14 +1872,33 @@
             }
           }
         }
+
+        // Controller settings
+        document.getElementById('controllerHost').value = savedSettings.controllerHost || '192.168.1.100';
+        document.getElementById('controllerPort').value = savedSettings.controllerPort || 9990;
+        document.getElementById('controllerLevelCount').value = savedSettings.controllerLevels || 1;
+        document.getElementById('autoReconnect').checked = savedSettings.autoReconnect !== false;
+        document.getElementById('autoConnect').checked = savedSettings.autoConnect || false;
+
+        // Mode
+        if (savedSettings.mode) {
+          currentMode = savedSettings.mode;
+          updateModeUI(savedSettings.mode);
+        }
       }
 
       state = await window.videoHub.getState();
       if (state.protocol) {
         updateProtocolUI(state.protocol);
+        updateControllerProtocolUI();
       }
       renderAll();
       log('Router Protocol Simulator initialized', 'success');
+
+      // Auto-connect in controller mode if enabled
+      if (currentMode === 'controller' && document.getElementById('autoConnect').checked) {
+        connectBtn.click();
+      }
     }
 
     // Auto-start checkbox handler

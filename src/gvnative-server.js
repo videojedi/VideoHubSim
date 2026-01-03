@@ -86,8 +86,33 @@ class GVNativeServer extends EventEmitter {
     // Echo mode for Level 4 acknowledgments
     this.echoEnabled = true;
 
+    // Change flags for subscription notifications
+    // Bit 0: Destination status (routing) changed
+    // Bit 1: Source names changed
+    // Bit 2: Destination names changed
+    // Bit 3: Level names changed
+    this.changeFlags = 0;
+
     this.clients = new Set();
     this.server = null;
+  }
+
+  // Flag constants
+  static FLAG_ROUTING_CHANGED = 0x0001;
+  static FLAG_SOURCE_NAMES_CHANGED = 0x0002;
+  static FLAG_DEST_NAMES_CHANGED = 0x0004;
+  static FLAG_LEVEL_NAMES_CHANGED = 0x0008;
+
+  setChangeFlag(flag) {
+    this.changeFlags |= flag;
+  }
+
+  clearChangeFlags() {
+    this.changeFlags = 0;
+  }
+
+  getChangeFlagsHex() {
+    return this.changeFlags.toString(16).toUpperCase().padStart(4, '0');
   }
 
   start() {
@@ -427,7 +452,8 @@ class GVNativeServer extends EventEmitter {
       }
     }
 
-    const response = this.buildMessage('NQ', ['S', this.inputs.toString(16).toUpperCase(), ...entries]);
+    const typeCode = withIndex ? 'IS' : 'S';
+    const response = this.buildMessage('NQ', [typeCode, this.inputs.toString(16).toUpperCase(), ...entries]);
     socket.write(response);
   }
 
@@ -445,7 +471,8 @@ class GVNativeServer extends EventEmitter {
       }
     }
 
-    const response = this.buildMessage('NQ', ['D', this.outputs.toString(16).toUpperCase(), ...entries]);
+    const typeCode = withIndex ? 'ID' : 'D';
+    const response = this.buildMessage('NQ', [typeCode, this.outputs.toString(16).toUpperCase(), ...entries]);
     socket.write(response);
   }
 
@@ -681,6 +708,7 @@ class GVNativeServer extends EventEmitter {
     }
 
     if (changes.length > 0) {
+      this.setChangeFlag(GVNativeServer.FLAG_ROUTING_CHANGED);
       this.emit('routing-changed', changes);
     }
 
@@ -735,6 +763,7 @@ class GVNativeServer extends EventEmitter {
     }
 
     if (changes.length > 0) {
+      this.setChangeFlag(GVNativeServer.FLAG_ROUTING_CHANGED);
       this.emit('routing-changed', changes);
     }
 
@@ -784,6 +813,7 @@ class GVNativeServer extends EventEmitter {
     }
 
     if (changes.length > 0) {
+      this.setChangeFlag(GVNativeServer.FLAG_ROUTING_CHANGED);
       this.emit('routing-changed', changes);
     }
 
@@ -831,6 +861,7 @@ class GVNativeServer extends EventEmitter {
     }
 
     if (changes.length > 0) {
+      this.setChangeFlag(GVNativeServer.FLAG_ROUTING_CHANGED);
       this.emit('routing-changed', changes);
     }
 
@@ -880,17 +911,17 @@ class GVNativeServer extends EventEmitter {
         }
         socket.write(this.buildMessage('KB', ['E', this.echoEnabled ? 'ON' : 'OFF']));
         break;
-      case 'F':  // Flags
-        socket.write(this.buildMessage('KB', ['F', '0000']));  // No changes
+      case 'F':  // Flags - return current change flags
+        socket.write(this.buildMessage('KB', ['F', this.getChangeFlagsHex()]));
         break;
-      case 'f':  // Clear flags
-        // No action needed
+      case 'f':  // Clear all flags
+        this.clearChangeFlags();
         break;
-      case 'D':  // Clear QD flags
-        // No action needed
+      case 'D':  // Clear QD (routing) flags
+        this.changeFlags &= ~GVNativeServer.FLAG_ROUTING_CHANGED;
         break;
-      case 'A':  // Clear QA flags
-        // No action needed
+      case 'A':  // Clear QA flags (not used, but clear all for compatibility)
+        this.clearChangeFlags();
         break;
       case 'P':  // Port configuration
         socket.write(this.buildMessage('KB', [
@@ -973,6 +1004,7 @@ class GVNativeServer extends EventEmitter {
 
     if (output < this.outputs && input < this.inputs) {
       this.routing[level][output] = input;
+      this.setChangeFlag(GVNativeServer.FLAG_ROUTING_CHANGED);
       this.emit('routing-changed', [{ level, output, input }]);
       return true;
     }
@@ -982,6 +1014,7 @@ class GVNativeServer extends EventEmitter {
   setInputLabel(input, label) {
     if (input >= 0 && input < this.inputs) {
       this.inputLabels[input] = label.substring(0, 8);
+      this.setChangeFlag(GVNativeServer.FLAG_SOURCE_NAMES_CHANGED);
       this.emit('input-labels-changed', [{ input, label: this.inputLabels[input] }]);
       return true;
     }
@@ -991,6 +1024,7 @@ class GVNativeServer extends EventEmitter {
   setOutputLabel(output, label) {
     if (output >= 0 && output < this.outputs) {
       this.outputLabels[output] = label.substring(0, 8);
+      this.setChangeFlag(GVNativeServer.FLAG_DEST_NAMES_CHANGED);
       this.emit('output-labels-changed', [{ output, label: this.outputLabels[output] }]);
       return true;
     }

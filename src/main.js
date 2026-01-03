@@ -5,9 +5,21 @@ const VideoHubServer = require('./videohub-server');
 const SWP08Server = require('./swp08-server');
 const GVNativeServer = require('./gvnative-server');
 
+// Controller imports (will be created)
+let VideoHubController, SWP08Controller, GVNativeController;
+try {
+  VideoHubController = require('./videohub-controller');
+  SWP08Controller = require('./swp08-controller');
+  GVNativeController = require('./gvnative-controller');
+} catch (e) {
+  // Controllers not yet implemented
+}
+
 let mainWindow;
-let routerServer;
+let routerServer;      // For simulator mode
+let controllerInstance; // For controller mode
 let currentProtocol = 'videohub';
+let currentMode = 'simulator';  // 'simulator' or 'controller'
 let settings = {};
 
 // Settings file path
@@ -29,6 +41,7 @@ function loadSettings() {
   }
   // Default settings
   settings = {
+    mode: 'simulator',
     protocol: 'videohub',
     inputs: 12,
     outputs: 12,
@@ -36,7 +49,13 @@ function loadSettings() {
     port: 9990,
     modelName: 'Blackmagic Smart Videohub 12x12',
     friendlyName: 'VideoHub Simulator',
-    autoStart: false
+    autoStart: false,
+    // Controller settings
+    controllerHost: '192.168.1.100',
+    controllerPort: 9990,
+    controllerLevels: 1,
+    autoReconnect: true,
+    autoConnect: false
   };
   return settings;
 }
@@ -132,6 +151,55 @@ function attachServerEvents(server) {
   });
 }
 
+function attachControllerEvents(controller) {
+  controller.on('connected', (data) => {
+    sendToRenderer('router-connected', { state: controller.getState() });
+    sendToRenderer('state-updated', controller.getState());
+  });
+
+  controller.on('disconnected', () => {
+    sendToRenderer('router-disconnected');
+  });
+
+  controller.on('reconnecting', (attempt) => {
+    sendToRenderer('router-reconnecting', attempt);
+  });
+
+  controller.on('routing-changed', (changes) => {
+    sendToRenderer('routing-changed', changes);
+    sendToRenderer('state-updated', controller.getState());
+  });
+
+  controller.on('input-labels-changed', (changes) => {
+    sendToRenderer('input-labels-changed', changes);
+    sendToRenderer('state-updated', controller.getState());
+  });
+
+  controller.on('output-labels-changed', (changes) => {
+    sendToRenderer('output-labels-changed', changes);
+    sendToRenderer('state-updated', controller.getState());
+  });
+
+  controller.on('state-updated', (state) => {
+    sendToRenderer('state-updated', state);
+  });
+
+  controller.on('error', (err) => {
+    sendToRenderer('router-error', err.message || err);
+  });
+}
+
+function createController(protocol, config = {}) {
+  if (protocol === 'swp08' && SWP08Controller) {
+    return new SWP08Controller(config);
+  } else if (protocol === 'gvnative' && GVNativeController) {
+    return new GVNativeController(config);
+  } else if (VideoHubController) {
+    return new VideoHubController(config);
+  }
+  return null;
+}
+
 function createServer(protocol, config = {}) {
   const defaultConfig = {
     inputs: 12,
@@ -194,35 +262,47 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle('get-state', () => {
+    const instance = currentMode === 'controller' && controllerInstance ? controllerInstance : routerServer;
     return {
-      ...routerServer.getState(),
+      ...instance.getState(),
       protocol: currentProtocol
     };
   });
 
-  ipcMain.handle('set-route', (event, output, input, level = 0) => {
+  ipcMain.handle('set-route', async (event, output, input, level = 0) => {
+    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+      return controllerInstance.setRoute(output, input, level);
+    }
     return routerServer.setRoute(output, input, level);
   });
 
   ipcMain.handle('get-routing-for-level', (event, level) => {
-    if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && routerServer.getRoutingForLevel) {
-      return routerServer.getRoutingForLevel(level);
+    const instance = currentMode === 'controller' && controllerInstance ? controllerInstance : routerServer;
+    if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance.getRoutingForLevel) {
+      return instance.getRoutingForLevel(level);
     }
-    return routerServer.getState().routing;
+    return instance.getState().routing;
   });
 
   ipcMain.handle('set-level-name', (event, level, name) => {
-    if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && routerServer.setLevelName) {
-      return routerServer.setLevelName(level, name);
+    const instance = currentMode === 'controller' && controllerInstance ? controllerInstance : routerServer;
+    if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance.setLevelName) {
+      return instance.setLevelName(level, name);
     }
     return false;
   });
 
-  ipcMain.handle('set-input-label', (event, input, label) => {
+  ipcMain.handle('set-input-label', async (event, input, label) => {
+    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+      return controllerInstance.setInputLabel(input, label);
+    }
     return routerServer.setInputLabel(input, label);
   });
 
-  ipcMain.handle('set-output-label', (event, output, label) => {
+  ipcMain.handle('set-output-label', async (event, output, label) => {
+    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+      return controllerInstance.setOutputLabel(output, label);
+    }
     return routerServer.setOutputLabel(output, label);
   });
 
@@ -311,19 +391,96 @@ function setupIpcHandlers() {
     saveSettings();
     return { success: true };
   });
+
+  // Mode control
+  ipcMain.handle('get-mode', () => {
+    return currentMode;
+  });
+
+  ipcMain.handle('set-mode', async (event, mode) => {
+    currentMode = mode;
+    settings.mode = mode;
+    saveSettings();
+    return { success: true, mode };
+  });
+
+  // Controller mode handlers
+  ipcMain.handle('connect-router', async (event, config) => {
+    try {
+      // Save controller settings
+      settings.controllerHost = config.host;
+      settings.controllerPort = config.port;
+      if (config.levels) settings.controllerLevels = config.levels;
+      saveSettings();
+
+      // Clean up existing controller if any
+      if (controllerInstance) {
+        controllerInstance.removeAllListeners();
+        await controllerInstance.disconnect().catch(() => {});
+      }
+
+      // Create new controller
+      controllerInstance = createController(currentProtocol, {
+        host: config.host,
+        port: config.port,
+        levels: config.levels || 1,
+        autoReconnect: settings.autoReconnect,
+        timeout: 5000
+      });
+
+      if (!controllerInstance) {
+        return { success: false, error: 'Controller not available for this protocol' };
+      }
+
+      attachControllerEvents(controllerInstance);
+
+      // Connect
+      await controllerInstance.connect();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('disconnect-router', async () => {
+    try {
+      if (controllerInstance) {
+        await controllerInstance.disconnect();
+        controllerInstance.removeAllListeners();
+        controllerInstance = null;
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('get-connection-status', () => {
+    if (!controllerInstance) {
+      return { connected: false };
+    }
+    return {
+      connected: controllerInstance.isConnected(),
+      host: settings.controllerHost,
+      port: settings.controllerPort
+    };
+  });
 }
 
 app.whenReady().then(async () => {
   // Load saved settings
   loadSettings();
 
-  // Initialize server with saved settings
+  // Set mode from settings
+  currentMode = settings.mode || 'simulator';
+
+  // Initialize server with saved settings (always create simulator server for fallback)
   initializeServer(settings.protocol, settings);
   setupIpcHandlers();
   createWindow();
 
-  // Auto-start server if enabled
-  if (settings.autoStart) {
+  // Auto-start server if enabled (only in simulator mode)
+  if (currentMode === 'simulator' && settings.autoStart) {
     try {
       await routerServer.start();
     } catch (err) {
@@ -342,6 +499,9 @@ app.on('window-all-closed', async () => {
   if (routerServer) {
     await routerServer.stop();
   }
+  if (controllerInstance) {
+    await controllerInstance.disconnect().catch(() => {});
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -350,5 +510,8 @@ app.on('window-all-closed', async () => {
 app.on('before-quit', async () => {
   if (routerServer) {
     await routerServer.stop();
+  }
+  if (controllerInstance) {
+    await controllerInstance.disconnect().catch(() => {});
   }
 });
