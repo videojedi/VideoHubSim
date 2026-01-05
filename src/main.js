@@ -16,10 +16,10 @@ try {
 }
 
 let mainWindow;
-let routerServer;      // For simulator mode
-let controllerInstance; // For controller mode
+let routerServer;      // Simulator server (always exists)
+let controllerInstance; // Controller (created on connect)
 let currentProtocol = 'videohub';
-let currentMode = 'simulator';  // 'simulator', 'controller', or 'dual'
+let currentView = 'simulator';  // 'simulator' or 'controller' - just determines what's displayed
 let settings = {};
 
 // Settings file path
@@ -41,7 +41,7 @@ function loadSettings() {
   }
   // Default settings
   settings = {
-    mode: 'simulator',
+    view: 'simulator',
     protocol: 'videohub',
     inputs: 12,
     outputs: 12,
@@ -51,7 +51,7 @@ function loadSettings() {
     friendlyName: 'VideoHub Simulator',
     autoStart: false,
     // Controller settings
-    controllerHost: '192.168.1.100',
+    controllerHost: '127.0.0.1',
     controllerPort: 9990,
     controllerLevels: 1,
     autoReconnect: true,
@@ -119,32 +119,32 @@ function attachServerEvents(server) {
 
   server.on('client-connected', (clientId) => {
     sendToRenderer('client-connected', clientId);
-    sendToRenderer('state-updated', server.getState());
+    sendToRenderer('simulator-state-updated', server.getState());
   });
 
   server.on('client-disconnected', (clientId) => {
     sendToRenderer('client-disconnected', clientId);
-    sendToRenderer('state-updated', server.getState());
+    sendToRenderer('simulator-state-updated', server.getState());
   });
 
   server.on('routing-changed', (changes) => {
-    sendToRenderer('routing-changed', changes);
-    sendToRenderer('state-updated', server.getState());
+    sendToRenderer('simulator-routing-changed', changes);
+    sendToRenderer('simulator-state-updated', server.getState());
   });
 
   server.on('locks-changed', (changes) => {
-    sendToRenderer('locks-changed', changes);
-    sendToRenderer('state-updated', server.getState());
+    sendToRenderer('simulator-locks-changed', changes);
+    sendToRenderer('simulator-state-updated', server.getState());
   });
 
   server.on('input-labels-changed', (changes) => {
-    sendToRenderer('input-labels-changed', changes);
-    sendToRenderer('state-updated', server.getState());
+    sendToRenderer('simulator-input-labels-changed', changes);
+    sendToRenderer('simulator-state-updated', server.getState());
   });
 
   server.on('output-labels-changed', (changes) => {
-    sendToRenderer('output-labels-changed', changes);
-    sendToRenderer('state-updated', server.getState());
+    sendToRenderer('simulator-output-labels-changed', changes);
+    sendToRenderer('simulator-state-updated', server.getState());
   });
 
   server.on('command-received', (data) => {
@@ -159,7 +159,7 @@ function attachServerEvents(server) {
 function attachControllerEvents(controller) {
   controller.on('connected', (data) => {
     sendToRenderer('router-connected', { state: controller.getState() });
-    sendToRenderer('state-updated', controller.getState());
+    sendToRenderer('controller-state-updated', controller.getState());
   });
 
   controller.on('disconnected', () => {
@@ -171,27 +171,27 @@ function attachControllerEvents(controller) {
   });
 
   controller.on('routing-changed', (changes) => {
-    sendToRenderer('routing-changed', changes);
-    sendToRenderer('state-updated', controller.getState());
+    sendToRenderer('controller-routing-changed', changes);
+    sendToRenderer('controller-state-updated', controller.getState());
   });
 
   controller.on('locks-changed', (changes) => {
-    sendToRenderer('locks-changed', changes);
-    sendToRenderer('state-updated', controller.getState());
+    sendToRenderer('controller-locks-changed', changes);
+    sendToRenderer('controller-state-updated', controller.getState());
   });
 
   controller.on('input-labels-changed', (changes) => {
-    sendToRenderer('input-labels-changed', changes);
-    sendToRenderer('state-updated', controller.getState());
+    sendToRenderer('controller-input-labels-changed', changes);
+    sendToRenderer('controller-state-updated', controller.getState());
   });
 
   controller.on('output-labels-changed', (changes) => {
-    sendToRenderer('output-labels-changed', changes);
-    sendToRenderer('state-updated', controller.getState());
+    sendToRenderer('controller-output-labels-changed', changes);
+    sendToRenderer('controller-state-updated', controller.getState());
   });
 
   controller.on('state-updated', (state) => {
-    sendToRenderer('state-updated', state);
+    sendToRenderer('controller-state-updated', state);
   });
 
   controller.on('error', (err) => {
@@ -253,6 +253,7 @@ function initializeServer(protocol = 'videohub', config = {}) {
 }
 
 function setupIpcHandlers() {
+  // Simulator controls
   ipcMain.handle('start-server', async () => {
     try {
       const port = await routerServer.start();
@@ -271,74 +272,90 @@ function setupIpcHandlers() {
     }
   });
 
-  ipcMain.handle('get-state', () => {
-    const instance = currentMode === 'controller' && controllerInstance ? controllerInstance : routerServer;
+  // Get state for simulator or controller
+  ipcMain.handle('get-state', (event, target) => {
+    if (target === 'controller' && controllerInstance) {
+      return {
+        ...controllerInstance.getState(),
+        protocol: currentProtocol
+      };
+    }
     return {
-      ...instance.getState(),
+      ...routerServer.getState(),
       protocol: currentProtocol
     };
   });
 
-  ipcMain.handle('set-route', async (event, output, input, level = 0, target) => {
-    // In dual mode, use target to determine where to route
-    if (currentMode === 'dual') {
-      if (target === 'controller' && controllerInstance && controllerInstance.isConnected()) {
-        return controllerInstance.setRoute(output, input, level);
-      }
-      return routerServer.setRoute(output, input, level);
+  ipcMain.handle('get-simulator-state', () => {
+    return {
+      ...routerServer.getState(),
+      protocol: currentProtocol
+    };
+  });
+
+  ipcMain.handle('get-controller-state', () => {
+    if (!controllerInstance) {
+      return null;
     }
-    // In controller mode, always use controller if connected
-    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+    return {
+      ...controllerInstance.getState(),
+      protocol: currentProtocol
+    };
+  });
+
+  // Routing commands - target specifies simulator or controller
+  ipcMain.handle('set-route', async (event, output, input, level = 0, target) => {
+    if (target === 'controller' && controllerInstance && controllerInstance.isConnected()) {
       return controllerInstance.setRoute(output, input, level);
     }
     return routerServer.setRoute(output, input, level);
   });
 
-  ipcMain.handle('get-routing-for-level', (event, level) => {
-    const instance = currentMode === 'controller' && controllerInstance ? controllerInstance : routerServer;
+  ipcMain.handle('get-routing-for-level', (event, level, target) => {
+    const instance = (target === 'controller' && controllerInstance) ? controllerInstance : routerServer;
     if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance.getRoutingForLevel) {
       return instance.getRoutingForLevel(level);
     }
     return instance.getState().routing;
   });
 
-  ipcMain.handle('set-level-name', (event, level, name) => {
-    const instance = currentMode === 'controller' && controllerInstance ? controllerInstance : routerServer;
+  ipcMain.handle('set-level-name', (event, level, name, target) => {
+    const instance = (target === 'controller' && controllerInstance) ? controllerInstance : routerServer;
     if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance.setLevelName) {
       return instance.setLevelName(level, name);
     }
     return false;
   });
 
-  ipcMain.handle('set-input-label', async (event, input, label) => {
-    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+  ipcMain.handle('set-input-label', async (event, input, label, target) => {
+    if (target === 'controller' && controllerInstance && controllerInstance.isConnected()) {
       return controllerInstance.setInputLabel(input, label);
     }
     return routerServer.setInputLabel(input, label);
   });
 
-  ipcMain.handle('set-output-label', async (event, output, label) => {
-    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+  ipcMain.handle('set-output-label', async (event, output, label, target) => {
+    if (target === 'controller' && controllerInstance && controllerInstance.isConnected()) {
       return controllerInstance.setOutputLabel(output, label);
     }
     return routerServer.setOutputLabel(output, label);
   });
 
-  ipcMain.handle('set-lock', async (event, output, lock) => {
+  ipcMain.handle('set-lock', async (event, output, lock, target) => {
     // Lock control is only available for VideoHub (BlackMagic) protocol
     if (currentProtocol !== 'videohub') {
       return false;
     }
-    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+    if (target === 'controller' && controllerInstance && controllerInstance.isConnected()) {
       return controllerInstance.setLock(output, lock);
     }
-    // For simulator mode, toggle the lock state directly
     if (routerServer.setLock) {
       return routerServer.setLock(output, lock);
     }
     return false;
   });
 
+  // Simulator configuration
   ipcMain.handle('update-config', async (event, config) => {
     const wasRunning = routerServer.server?.listening;
     const protocolChanged = config.protocol && config.protocol !== currentProtocol;
@@ -384,6 +401,13 @@ function setupIpcHandlers() {
       await routerServer.stop();
     }
 
+    // Disconnect controller if connected (protocol change)
+    if (controllerInstance) {
+      await controllerInstance.disconnect().catch(() => {});
+      controllerInstance.removeAllListeners();
+      controllerInstance = null;
+    }
+
     const oldState = routerServer.getState();
     routerServer.removeAllListeners();
 
@@ -414,7 +438,7 @@ function setupIpcHandlers() {
     };
   });
 
-  // Get/set auto-start setting
+  // Settings
   ipcMain.handle('get-settings', () => {
     return settings;
   });
@@ -425,19 +449,19 @@ function setupIpcHandlers() {
     return { success: true };
   });
 
-  // Mode control
-  ipcMain.handle('get-mode', () => {
-    return currentMode;
+  // View control (what's displayed in the UI)
+  ipcMain.handle('get-view', () => {
+    return currentView;
   });
 
-  ipcMain.handle('set-mode', async (event, mode) => {
-    currentMode = mode;
-    settings.mode = mode;
+  ipcMain.handle('set-view', async (event, view) => {
+    currentView = view;
+    settings.view = view;
     saveSettings();
-    return { success: true, mode };
+    return { success: true, view };
   });
 
-  // Controller mode handlers
+  // Controller handlers
   ipcMain.handle('connect-router', async (event, config) => {
     try {
       // Save controller settings
@@ -499,81 +523,12 @@ function setupIpcHandlers() {
     };
   });
 
-  // Dual mode handlers
-  ipcMain.handle('start-dual-mode', async () => {
-    try {
-      // Ensure simulator is running
-      if (!routerServer.server?.listening) {
-        await routerServer.start();
-      }
-
-      const simulatorPort = routerServer.port;
-
-      // Clean up existing controller if any
-      if (controllerInstance) {
-        controllerInstance.removeAllListeners();
-        await controllerInstance.disconnect().catch(() => {});
-      }
-
-      // Create controller pointing to local simulator
-      controllerInstance = createController(currentProtocol, {
-        host: '127.0.0.1',
-        port: simulatorPort,
-        levels: settings.levels || 1,
-        autoReconnect: true,
-        timeout: 5000
-      });
-
-      if (!controllerInstance) {
-        return { success: false, error: 'Controller not available for this protocol' };
-      }
-
-      attachControllerEvents(controllerInstance);
-
-      // Connect controller to simulator
-      await controllerInstance.connect();
-
-      return { success: true, simulatorPort };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
+  ipcMain.handle('is-server-running', () => {
+    return routerServer.server?.listening || false;
   });
 
-  ipcMain.handle('stop-dual-mode', async () => {
-    try {
-      // Disconnect controller
-      if (controllerInstance) {
-        await controllerInstance.disconnect().catch(() => {});
-        controllerInstance.removeAllListeners();
-        controllerInstance = null;
-      }
-
-      // Stop simulator
-      if (routerServer.server?.listening) {
-        await routerServer.stop();
-      }
-
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('get-simulator-state', () => {
-    return {
-      ...routerServer.getState(),
-      protocol: currentProtocol
-    };
-  });
-
-  ipcMain.handle('get-controller-state', () => {
-    if (!controllerInstance) {
-      return null;
-    }
-    return {
-      ...controllerInstance.getState(),
-      protocol: currentProtocol
-    };
+  ipcMain.handle('is-controller-connected', () => {
+    return controllerInstance?.isConnected() || false;
   });
 }
 
@@ -581,16 +536,16 @@ app.whenReady().then(async () => {
   // Load saved settings
   loadSettings();
 
-  // Set mode from settings
-  currentMode = settings.mode || 'simulator';
+  // Set view from settings
+  currentView = settings.view || 'simulator';
 
-  // Initialize server with saved settings (always create simulator server for fallback)
+  // Initialize server with saved settings
   initializeServer(settings.protocol, settings);
   setupIpcHandlers();
   createWindow();
 
-  // Auto-start server if enabled (only in simulator mode)
-  if (currentMode === 'simulator' && settings.autoStart) {
+  // Auto-start server if enabled
+  if (settings.autoStart) {
     try {
       await routerServer.start();
     } catch (err) {

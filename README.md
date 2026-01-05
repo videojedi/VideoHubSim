@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.0.2)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.0.3)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.0.2-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.2/Router.Protocol.Simulator-2.0.2-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.0.2.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.2/Router.Protocol.Simulator.Setup.2.0.2.exe) |
-| Windows Portable | [Router Protocol Simulator 2.0.2.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.2/Router.Protocol.Simulator.2.0.2.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.0.3-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.3/Router.Protocol.Simulator-2.0.3-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.0.3.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.3/Router.Protocol.Simulator.Setup.2.0.3.exe) |
+| Windows Portable | [Router Protocol Simulator 2.0.3.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.3/Router.Protocol.Simulator.2.0.3.exe) |
 
 ## Features
 
@@ -218,6 +218,16 @@ Ensure the server is started (green status indicator) before connecting clients.
 
 ## Changelog
 
+### v2.0.3
+- Simplified architecture: Simulator and controller now fully independent
+- View toggle switches between simulator and controller display
+- Start simulator and connect controller in any combination
+- Controller defaults to localhost (127.0.0.1) for easy local testing
+- Collapsible activity log panel with disclosure triangle
+- XY grid now fills the available panel space
+- Header shows both SIM and CTL status indicators
+- Removed "Dual Test" mode (no longer needed)
+
 ### v2.0.2
 - Added destination lock support for BlackMagic VideoHub protocol
 - Lock/unlock buttons in routing grid and XY crosspoint view
@@ -227,9 +237,7 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Lock status changes shown in activity log
 
 ### v2.0.1
-- Added Dual Test mode: Run simulator and controller simultaneously for local testing
-- Controller can connect to the local simulator to test controller features
-- View toggle to switch between simulator and controller perspectives
+- Added Dual Test mode for local controller testing
 
 ### v2.0.0
 - Major refactoring: Protocol logic separated into dedicated controller modules
