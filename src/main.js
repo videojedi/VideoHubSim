@@ -132,6 +132,11 @@ function attachServerEvents(server) {
     sendToRenderer('state-updated', server.getState());
   });
 
+  server.on('locks-changed', (changes) => {
+    sendToRenderer('locks-changed', changes);
+    sendToRenderer('state-updated', server.getState());
+  });
+
   server.on('input-labels-changed', (changes) => {
     sendToRenderer('input-labels-changed', changes);
     sendToRenderer('state-updated', server.getState());
@@ -167,6 +172,11 @@ function attachControllerEvents(controller) {
 
   controller.on('routing-changed', (changes) => {
     sendToRenderer('routing-changed', changes);
+    sendToRenderer('state-updated', controller.getState());
+  });
+
+  controller.on('locks-changed', (changes) => {
+    sendToRenderer('locks-changed', changes);
     sendToRenderer('state-updated', controller.getState());
   });
 
@@ -312,6 +322,21 @@ function setupIpcHandlers() {
       return controllerInstance.setOutputLabel(output, label);
     }
     return routerServer.setOutputLabel(output, label);
+  });
+
+  ipcMain.handle('set-lock', async (event, output, lock) => {
+    // Lock control is only available for VideoHub (BlackMagic) protocol
+    if (currentProtocol !== 'videohub') {
+      return false;
+    }
+    if (currentMode === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+      return controllerInstance.setLock(output, lock);
+    }
+    // For simulator mode, toggle the lock state directly
+    if (routerServer.setLock) {
+      return routerServer.setLock(output, lock);
+    }
+    return false;
   });
 
   ipcMain.handle('update-config', async (event, config) => {

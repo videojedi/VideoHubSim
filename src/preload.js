@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('videoHub', {
   setRoute: (output, input, level = 0, target) => ipcRenderer.invoke('set-route', output, input, level, target),
   setInputLabel: (input, label) => ipcRenderer.invoke('set-input-label', input, label),
   setOutputLabel: (output, label) => ipcRenderer.invoke('set-output-label', output, label),
+  setLock: (output, lock) => ipcRenderer.invoke('set-lock', output, lock),
   getRoutingForLevel: (level) => ipcRenderer.invoke('get-routing-for-level', level),
   setLevelName: (level, name) => ipcRenderer.invoke('set-level-name', level, name),
 
@@ -45,6 +46,7 @@ contextBridge.exposeInMainWorld('videoHub', {
   onRoutingChanged: (callback) => ipcRenderer.on('routing-changed', (_, changes) => callback(changes)),
   onInputLabelsChanged: (callback) => ipcRenderer.on('input-labels-changed', (_, changes) => callback(changes)),
   onOutputLabelsChanged: (callback) => ipcRenderer.on('output-labels-changed', (_, changes) => callback(changes)),
+  onLocksChanged: (callback) => ipcRenderer.on('locks-changed', (_, changes) => callback(changes)),
   onStateUpdated: (callback) => ipcRenderer.on('state-updated', (_, state) => callback(state)),
   onCommandReceived: (callback) => ipcRenderer.on('command-received', (_, data) => callback(data)),
 

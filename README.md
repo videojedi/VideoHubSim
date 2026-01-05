@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.0.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.0.2)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.0.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.1/Router.Protocol.Simulator-2.0.1-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.0.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.1/Router.Protocol.Simulator.Setup.2.0.1.exe) |
-| Windows Portable | [Router Protocol Simulator 2.0.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.1/Router.Protocol.Simulator.2.0.1.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.0.2-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.2/Router.Protocol.Simulator-2.0.2-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.0.2.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.2/Router.Protocol.Simulator.Setup.2.0.2.exe) |
+| Windows Portable | [Router Protocol Simulator 2.0.2.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.2/Router.Protocol.Simulator.2.0.2.exe) |
 
 ## Features
 
@@ -217,6 +217,14 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Some clients may require specifying matrix/level 0
 
 ## Changelog
+
+### v2.0.2
+- Added destination lock support for BlackMagic VideoHub protocol
+- Lock/unlock buttons in routing grid and XY crosspoint view
+- Visual lock status indicators (red=locked by you, orange=locked by other)
+- Force unlock with Shift+click for destinations locked by other clients
+- NAK response handling reverts crosspoint to previous state
+- Lock status changes shown in activity log
 
 ### v2.0.1
 - Added Dual Test mode: Run simulator and controller simultaneously for local testing

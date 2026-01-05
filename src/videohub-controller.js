@@ -28,6 +28,10 @@ class VideoHubController extends EventEmitter {
     this.modelName = '';
     this.friendlyName = '';
     this.uniqueId = '';
+
+    // Track pending route changes for NAK handling
+    this.pendingRouteChanges = [];
+    this.pendingLockChanges = [];
   }
 
   async connect() {
@@ -172,8 +176,13 @@ class VideoHubController extends EventEmitter {
     } else if (header === 'VIDEO OUTPUT LOCKS:') {
       this.parseLocks(lines.slice(1));
     } else if (header === 'ACK') {
-      // Command acknowledged
+      // Command acknowledged - clear pending changes
+      this.pendingRouteChanges = [];
+      this.pendingLockChanges = [];
     } else if (header === 'NAK') {
+      // Command rejected - revert any pending changes
+      this.revertPendingRouteChanges();
+      this.revertPendingLockChanges();
       this.emit('error', 'Command rejected by router');
     }
 
@@ -258,6 +267,10 @@ class VideoHubController extends EventEmitter {
       if (match) {
         const output = parseInt(match[1]);
         const input = parseInt(match[2]);
+
+        // Clear any pending changes for this output since router confirmed state
+        this.pendingRouteChanges = this.pendingRouteChanges.filter(p => p.output !== output);
+
         if (this.routing[output] !== input) {
           this.routing[output] = input;
           changes.push({ output, input });
@@ -271,13 +284,25 @@ class VideoHubController extends EventEmitter {
   }
 
   parseLocks(lines) {
+    const changes = [];
     for (const line of lines) {
       const match = line.match(/^(\d+)\s+(\S+)$/);
       if (match) {
         const output = parseInt(match[1]);
         const lock = match[2];
-        this.outputLocks[output] = lock;
+
+        // Clear any pending lock changes for this output since router confirmed state
+        this.pendingLockChanges = this.pendingLockChanges.filter(p => p.output !== output);
+
+        if (this.outputLocks[output] !== lock) {
+          this.outputLocks[output] = lock;
+          changes.push({ output, lock });
+        }
       }
+    }
+
+    if (changes.length > 0) {
+      this.emit('locks-changed', changes);
     }
   }
 
@@ -300,15 +325,94 @@ class VideoHubController extends EventEmitter {
     }
 
     const command = `VIDEO OUTPUT ROUTING:\n${output} ${input}\n\n`;
-    this.socket.write(command);
 
-    // Optimistically update local state
+    // Track the old value before optimistic update
     const oldInput = this.routing[output];
     if (oldInput !== input) {
+      // Store pending change for potential rollback on NAK
+      this.pendingRouteChanges.push({ output, oldInput, newInput: input });
+
+      // Optimistically update local state
       this.routing[output] = input;
       this.emit('routing-changed', [{ output, input }]);
     }
 
+    this.socket.write(command);
+    return true;
+  }
+
+  revertPendingRouteChanges() {
+    if (this.pendingRouteChanges.length === 0) {
+      return;
+    }
+
+    const changes = [];
+    for (const pending of this.pendingRouteChanges) {
+      // Revert to the old input value
+      if (pending.oldInput !== undefined) {
+        this.routing[pending.output] = pending.oldInput;
+        changes.push({ output: pending.output, input: pending.oldInput });
+      }
+    }
+
+    // Clear pending changes
+    this.pendingRouteChanges = [];
+
+    // Emit routing changed event to update UI with reverted values
+    if (changes.length > 0) {
+      this.emit('routing-changed', changes);
+    }
+  }
+
+  revertPendingLockChanges() {
+    if (this.pendingLockChanges.length === 0) {
+      return;
+    }
+
+    const changes = [];
+    for (const pending of this.pendingLockChanges) {
+      // Revert to the old lock value
+      if (pending.oldLock !== undefined) {
+        this.outputLocks[pending.output] = pending.oldLock;
+        changes.push({ output: pending.output, lock: pending.oldLock });
+      }
+    }
+
+    // Clear pending changes
+    this.pendingLockChanges = [];
+
+    // Emit locks changed event to update UI with reverted values
+    if (changes.length > 0) {
+      this.emit('locks-changed', changes);
+    }
+  }
+
+  async setLock(output, lock) {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+
+    // Valid lock states: O = owned/locked, U = unlocked, F = force unlock
+    if (!['O', 'U', 'F'].includes(lock)) {
+      throw new Error('Invalid lock state. Use O (lock), U (unlock), or F (force unlock)');
+    }
+
+    const command = `VIDEO OUTPUT LOCKS:\n${output} ${lock}\n\n`;
+
+    // Track the old value before optimistic update
+    const oldLock = this.outputLocks[output];
+    const newLockState = lock === 'F' ? 'U' : lock; // Force unlock results in unlocked state
+
+    if (oldLock !== newLockState) {
+      // Store pending change for potential rollback on NAK
+      this.pendingLockChanges.push({ output, oldLock, newLock: newLockState });
+
+      // Optimistically update local state
+      this.outputLocks[output] = newLockState;
+      this.emit('locks-changed', [{ output, lock: newLockState }]);
+    }
+
+    this.socket.write(command);
     return true;
   }
 
@@ -354,6 +458,20 @@ class VideoHubController extends EventEmitter {
   setLevelName(level, name) {
     // VideoHub doesn't support levels
     return false;
+  }
+
+  // Lock helper methods
+  getLock(output) {
+    return this.outputLocks[output] || 'U';
+  }
+
+  isLocked(output) {
+    const lock = this.outputLocks[output];
+    return lock === 'O' || lock === 'L';
+  }
+
+  getAllLocks() {
+    return { ...this.outputLocks };
   }
 }
 

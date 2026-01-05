@@ -376,6 +376,17 @@ class VideoHubServer extends EventEmitter {
     return false;
   }
 
+  setLock(output, lock) {
+    if (output >= 0 && output < this.outputs && ['O', 'U', 'F'].includes(lock)) {
+      const newLockState = lock === 'F' ? 'U' : lock;
+      this.outputLocks[output] = newLockState;
+      this.broadcastLockChange([{ output, lock: newLockState }]);
+      this.emit('locks-changed', [{ output, lock: newLockState }]);
+      return true;
+    }
+    return false;
+  }
+
   getState() {
     return {
       inputs: this.inputs,
