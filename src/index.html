@@ -367,6 +367,191 @@
       border-color: #4a69bd;
     }
 
+    .label-input:disabled {
+      background: rgba(0, 0, 0, 0.15);
+      color: #666;
+      cursor: not-allowed;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Labels List Layout */
+    .labels-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow-y: auto;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .label-row:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .label-row.selected {
+      background: rgba(74, 105, 189, 0.3);
+      outline: 1px solid rgba(74, 105, 189, 0.5);
+    }
+
+    .label-row.selected:hover {
+      background: rgba(74, 105, 189, 0.4);
+    }
+
+    .label-row .row-number {
+      width: 40px;
+      font-size: 0.8rem;
+      color: #666;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .label-row .row-label {
+      flex: 1;
+      font-size: 0.85rem;
+      color: #888;
+      min-width: 80px;
+    }
+
+    .label-row .label-input {
+      flex: 2;
+      max-width: 300px;
+    }
+
+    /* Labels Toolbar */
+    .labels-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      flex-wrap: wrap;
+    }
+
+    .labels-toolbar .btn-small {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .labels-toolbar .separator {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 0 5px;
+    }
+
+    .labels-toolbar .selection-count {
+      font-size: 0.8rem;
+      color: #888;
+      margin-left: auto;
+    }
+
+    .labels-toolbar .selection-hint {
+      font-size: 0.75rem;
+      color: #666;
+      font-style: italic;
+    }
+
+    /* Two-column labels layout */
+    .labels-columns {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .labels-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .labels-column-header {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #4a69bd;
+      margin: 0 0 10px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(74, 105, 189, 0.3);
+    }
+
+    .labels-column .labels-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Override labels panel for flex layout */
+    #labelsPanel.labels-panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Context Menu */
+    .context-menu {
+      position: fixed;
+      z-index: 1000;
+      min-width: 200px;
+      background: #1a1a2e;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      padding: 4px 0;
+      display: none;
+    }
+
+    .context-menu.visible {
+      display: block;
+    }
+
+    .context-menu-item {
+      padding: 8px 15px;
+      font-size: 0.85rem;
+      color: #e0e0e0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .context-menu-item:hover {
+      background: rgba(74, 105, 189, 0.3);
+    }
+
+    .context-menu-item.disabled {
+      color: #555;
+      cursor: not-allowed;
+    }
+
+    .context-menu-item.disabled:hover {
+      background: transparent;
+    }
+
+    .context-menu-item .shortcut {
+      margin-left: auto;
+      color: #666;
+      font-size: 0.75rem;
+    }
+
+    .context-menu-separator {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 4px 0;
+    }
+
     /* Tabs */
     .tabs {
       display: flex;
@@ -1029,8 +1214,7 @@
         <div class="tabs">
           <button class="tab active" data-tab="routing">Routing Matrix</button>
           <button class="tab" data-tab="xy">XY</button>
-          <button class="tab" data-tab="inputs">Input Labels</button>
-          <button class="tab" data-tab="outputs">Output Labels</button>
+          <button class="tab" data-tab="labels">Labels</button>
         </div>
 
         <div id="routingPanel" class="matrix-container">
@@ -1044,23 +1228,33 @@
           </div>
         </div>
 
-        <div id="inputsPanel" class="labels-panel">
-          <div class="controller-notice" id="inputLabelsNotice">
+        <div id="labelsPanel" class="labels-panel">
+          <div class="controller-notice" id="labelsNotice">
             <strong>Controller Mode - Read Only</strong>
             Labels are received from the router and cannot be changed locally. Any local changes will be overwritten when the router sends label updates.
           </div>
-          <div class="labels-grid" id="inputLabelsGrid">
-            <!-- Input label cards will be generated here -->
+          <div class="labels-toolbar">
+            <button class="btn btn-primary btn-small" id="importLabelsBtn">Import CSV</button>
+            <button class="btn btn-primary btn-small" id="exportLabelsBtn">Export CSV</button>
+            <div class="separator"></div>
+            <button class="btn btn-primary btn-small" id="selectAllInputsBtn">Select All Inputs</button>
+            <button class="btn btn-primary btn-small" id="selectAllOutputsBtn">Select All Outputs</button>
+            <span class="selection-count" id="labelSelectionCount"></span>
+            <span class="selection-hint" id="labelSelectionHint"></span>
           </div>
-        </div>
-
-        <div id="outputsPanel" class="labels-panel">
-          <div class="controller-notice" id="outputLabelsNotice">
-            <strong>Controller Mode - Read Only</strong>
-            Labels are received from the router and cannot be changed locally. Any local changes will be overwritten when the router sends label updates.
-          </div>
-          <div class="labels-grid" id="outputLabelsGrid">
-            <!-- Output label cards will be generated here -->
+          <div class="labels-columns">
+            <div class="labels-column">
+              <h3 class="labels-column-header">Input Labels</h3>
+              <div class="labels-list" id="inputLabelsList">
+                <!-- Input label rows will be generated here -->
+              </div>
+            </div>
+            <div class="labels-column">
+              <h3 class="labels-column-header">Output Labels</h3>
+              <div class="labels-list" id="outputLabelsList">
+                <!-- Output label rows will be generated here -->
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1086,6 +1280,33 @@
       </div>
       <div class="log-panel" id="logPanel">
         <!-- Log entries will be added here -->
+      </div>
+    </div>
+
+    <!-- Hidden file input for CSV import -->
+    <input type="file" id="csvFileInput" accept=".csv,.txt" style="display: none;">
+
+    <!-- Context Menu for Labels -->
+    <div class="context-menu" id="labelsContextMenu">
+      <div class="context-menu-item" data-action="cut">
+        Cut <span class="shortcut" data-key="X"></span>
+      </div>
+      <div class="context-menu-item" data-action="copy">
+        Copy <span class="shortcut" data-key="C"></span>
+      </div>
+      <div class="context-menu-item" data-action="paste">
+        Paste <span class="shortcut" data-key="V"></span>
+      </div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" data-action="fill-increment" title="Select 2+ rows first">
+        Fill and Increment
+      </div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" data-action="select-all">
+        Select All <span class="shortcut" data-key="A"></span>
+      </div>
+      <div class="context-menu-item" data-action="deselect">
+        Deselect <span class="shortcut">Esc</span>
       </div>
     </div>
   </div>
@@ -1123,8 +1344,8 @@
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const routingGrid = document.getElementById('routingGrid');
-    const inputLabelsGrid = document.getElementById('inputLabelsGrid');
-    const outputLabelsGrid = document.getElementById('outputLabelsGrid');
+    const inputLabelsList = document.getElementById('inputLabelsList');
+    const outputLabelsList = document.getElementById('outputLabelsList');
     const clientList = document.getElementById('clientList');
     const logPanel = document.getElementById('logPanel');
     const applyConfigBtn = document.getElementById('applyConfig');
@@ -1144,6 +1365,17 @@
     const controllerStatusDot = document.getElementById('controllerStatusDot');
     const controllerStatusText = document.getElementById('controllerStatusText');
     const controllerLevelsGroup = document.getElementById('controllerLevelsGroup');
+
+    // Label selection state
+    let labelSelection = {
+      type: null,           // 'input' or 'output'
+      selected: new Set(),  // Set of selected indices
+      lastSelected: null,   // For shift+click range selection
+      clipboard: {
+        labels: [],         // Array of {index, label} objects
+        operation: null     // 'cut' or 'copy'
+      }
+    };
 
 
     // Logging
@@ -1204,6 +1436,15 @@
     function updateLevelIndicator() {
       const levelName = state.levelNames?.[currentLevel] || `Level ${currentLevel + 1}`;
       levelIndicator.textContent = `Level ${currentLevel + 1}: ${levelName}`;
+    }
+
+    // Check if label editing is allowed (in simulator mode, or in controller mode with active connection)
+    function canEditLabels() {
+      if (currentView === 'simulator') {
+        return true;
+      }
+      // In controller mode, must be connected
+      return isConnected;
     }
 
     function getCurrentRouting() {
@@ -1269,7 +1510,7 @@
         const lockBtn = document.createElement('button');
         lockBtn.className = 'lock-btn' + (isBlackMagic ? ' visible' : '');
         lockBtn.dataset.output = o;
-        lockBtn.title = isLockedByOther ? 'Locked by another client (Shift+click to force unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
+        lockBtn.title = isLockedByOther ? 'Locked by another client (Ctrl+click to unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
         lockBtn.innerHTML = isLocked ? LOCK_ICON_LOCKED : LOCK_ICON_UNLOCKED;
 
         if (isLocked) {
@@ -1279,13 +1520,14 @@
         lockBtn.addEventListener('click', async (e) => {
           const output = parseInt(e.currentTarget.dataset.output);
           const currentLock = state.outputLocks?.[output] || 'U';
-          // Force unlock with Shift+click
+          // Locked by another client - require Ctrl+click to force unlock
           if (currentLock === 'L') {
-            if (e.shiftKey) {
+            if (e.ctrlKey || e.metaKey) {
               await window.videoHub.setLock(output, 'F', currentView);
             }
             return;
           }
+          // Normal toggle for own locks
           const newLock = currentLock === 'O' ? 'U' : 'O';
           await window.videoHub.setLock(output, newLock, currentView);
         });
@@ -1300,57 +1542,590 @@
     }
 
     function renderInputLabels() {
-      inputLabelsGrid.innerHTML = '';
+      inputLabelsList.innerHTML = '';
 
       for (let i = 0; i < state.inputs; i++) {
-        const card = document.createElement('div');
-        card.className = 'label-card';
-
-        const title = document.createElement('h4');
-        title.textContent = `Input ${i + 1}`;
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'label-input';
-        input.value = state.inputLabels[i] || `Input ${i + 1}`;
-        input.dataset.input = i;
-
-        input.addEventListener('change', async (e) => {
-          const inputIndex = parseInt(e.target.dataset.input);
-          await window.videoHub.setInputLabel(inputIndex, e.target.value, currentView);
-        });
-
-        card.appendChild(title);
-        card.appendChild(input);
-        inputLabelsGrid.appendChild(card);
+        const row = createLabelRow('input', i, state.inputLabels[i] || `Input ${i + 1}`);
+        inputLabelsList.appendChild(row);
       }
+
+      updateSelectionCount();
     }
 
     function renderOutputLabels() {
-      outputLabelsGrid.innerHTML = '';
+      outputLabelsList.innerHTML = '';
 
       for (let o = 0; o < state.outputs; o++) {
-        const card = document.createElement('div');
-        card.className = 'label-card';
-
-        const title = document.createElement('h4');
-        title.textContent = `Output ${o + 1}`;
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'label-input';
-        input.value = state.outputLabels[o] || `Output ${o + 1}`;
-        input.dataset.output = o;
-
-        input.addEventListener('change', async (e) => {
-          const outputIndex = parseInt(e.target.dataset.output);
-          await window.videoHub.setOutputLabel(outputIndex, e.target.value, currentView);
-        });
-
-        card.appendChild(title);
-        card.appendChild(input);
-        outputLabelsGrid.appendChild(card);
+        const row = createLabelRow('output', o, state.outputLabels[o] || `Output ${o + 1}`);
+        outputLabelsList.appendChild(row);
       }
+
+      updateSelectionCount();
+    }
+
+    function createLabelRow(type, index, labelValue) {
+      const row = document.createElement('div');
+      row.className = 'label-row';
+      row.dataset.type = type;
+      row.dataset.index = index;
+
+      // Check if selected
+      if (labelSelection.type === type && labelSelection.selected.has(index)) {
+        row.classList.add('selected');
+      }
+
+      // Row number
+      const rowNum = document.createElement('div');
+      rowNum.className = 'row-number';
+      rowNum.textContent = index + 1;
+
+      // Label type indicator
+      const rowLabel = document.createElement('div');
+      rowLabel.className = 'row-label';
+      rowLabel.textContent = type === 'input' ? `Input ${index + 1}` : `Output ${index + 1}`;
+
+      // Input field
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'label-input';
+      input.value = labelValue;
+      input.dataset.type = type;
+      input.dataset.index = index;
+      input.tabIndex = index + 1; // Enable Tab navigation
+
+      // Disable if in controller mode and not connected
+      if (!canEditLabels()) {
+        input.disabled = true;
+        input.title = 'Connect to a router to edit labels';
+      }
+
+      // Event handlers
+      input.addEventListener('change', handleLabelChange);
+      input.addEventListener('keydown', handleLabelKeydown);
+
+      // Handle right-click on input field - use custom context menu
+      input.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Treat right-click on input same as right-click on row
+        handleRowContextMenu({
+          preventDefault: () => {},
+          currentTarget: row,
+          clientX: e.clientX,
+          clientY: e.clientY
+        });
+      });
+
+      // Row click for selection (but not on input field)
+      row.addEventListener('click', handleRowClick);
+      row.addEventListener('contextmenu', handleRowContextMenu);
+
+      row.appendChild(rowNum);
+      row.appendChild(rowLabel);
+      row.appendChild(input);
+
+      return row;
+    }
+
+    async function handleLabelChange(e) {
+      const input = e.target;
+      const type = input.dataset.type;
+      const index = parseInt(input.dataset.index);
+      const value = input.value;
+
+      if (type === 'input') {
+        await window.videoHub.setInputLabel(index, value, currentView);
+      } else {
+        await window.videoHub.setOutputLabel(index, value, currentView);
+      }
+    }
+
+    function handleLabelKeydown(e) {
+      const input = e.target;
+      const type = input.dataset.type;
+      const index = parseInt(input.dataset.index);
+      const max = type === 'input' ? state.inputs : state.outputs;
+
+      if (e.key === 'ArrowDown' && !e.shiftKey) {
+        e.preventDefault();
+        focusLabelInput(type, Math.min(index + 1, max - 1));
+      } else if (e.key === 'ArrowUp' && !e.shiftKey) {
+        e.preventDefault();
+        focusLabelInput(type, Math.max(index - 1, 0));
+      } else if (e.key === 'Escape') {
+        clearLabelSelection();
+        input.blur();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (index < max - 1) {
+          focusLabelInput(type, index + 1);
+        }
+      }
+    }
+
+    function focusLabelInput(type, index) {
+      const container = type === 'input' ? inputLabelsList : outputLabelsList;
+      const input = container.querySelector(`input[data-index="${index}"]`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    function handleRowClick(e) {
+      // Don't handle if clicking the input field
+      if (e.target.classList.contains('label-input')) {
+        return;
+      }
+
+      const row = e.currentTarget;
+      const type = row.dataset.type;
+      const index = parseInt(row.dataset.index);
+
+      // Clear selection if switching between input/output types
+      if (labelSelection.type !== type) {
+        clearLabelSelection();
+        labelSelection.type = type;
+      }
+
+      if (e.shiftKey && labelSelection.lastSelected !== null) {
+        // Range selection
+        const start = Math.min(labelSelection.lastSelected, index);
+        const end = Math.max(labelSelection.lastSelected, index);
+
+        if (!e.ctrlKey && !e.metaKey) {
+          labelSelection.selected.clear();
+        }
+
+        for (let i = start; i <= end; i++) {
+          labelSelection.selected.add(i);
+        }
+      } else if (e.ctrlKey || e.metaKey) {
+        // Toggle selection
+        if (labelSelection.selected.has(index)) {
+          labelSelection.selected.delete(index);
+        } else {
+          labelSelection.selected.add(index);
+        }
+        labelSelection.lastSelected = index;
+      } else {
+        // Single selection
+        labelSelection.selected.clear();
+        labelSelection.selected.add(index);
+        labelSelection.lastSelected = index;
+      }
+
+      updateSelectionUI(type);
+    }
+
+    function handleRowContextMenu(e) {
+      e.preventDefault();
+
+      const row = e.currentTarget;
+      const type = row.dataset.type;
+      const index = parseInt(row.dataset.index);
+
+      // If right-clicking unselected row, select it (preserves multi-selection if clicking on already-selected row)
+      if (!labelSelection.selected.has(index) || labelSelection.type !== type) {
+        labelSelection.type = type;
+        labelSelection.selected.clear();
+        labelSelection.selected.add(index);
+        labelSelection.lastSelected = index;
+        updateSelectionUI(type);
+      }
+
+      showContextMenu(e.clientX, e.clientY, type);
+    }
+
+    function clearLabelSelection() {
+      labelSelection.selected.clear();
+      labelSelection.lastSelected = null;
+
+      document.querySelectorAll('.label-row.selected').forEach(row => {
+        row.classList.remove('selected');
+      });
+
+      updateSelectionCount();
+    }
+
+    function updateSelectionUI(type) {
+      const container = type === 'input' ? inputLabelsList : outputLabelsList;
+
+      container.querySelectorAll('.label-row').forEach(row => {
+        const index = parseInt(row.dataset.index);
+        if (labelSelection.type === type && labelSelection.selected.has(index)) {
+          row.classList.add('selected');
+        } else {
+          row.classList.remove('selected');
+        }
+      });
+
+      updateSelectionCount(type);
+    }
+
+    function updateSelectionCount(type) {
+      const countEl = document.getElementById('labelSelectionCount');
+      if (!countEl) return;
+
+      const count = labelSelection.selected.size;
+      if (count > 0 && labelSelection.type) {
+        const typeLabel = labelSelection.type === 'input' ? 'inputs' : 'outputs';
+        countEl.textContent = `${count} ${typeLabel} selected`;
+      } else {
+        countEl.textContent = '';
+      }
+    }
+
+    function selectAllLabels(type) {
+      const max = type === 'input' ? state.inputs : state.outputs;
+
+      labelSelection.type = type;
+      labelSelection.selected.clear();
+
+      for (let i = 0; i < max; i++) {
+        labelSelection.selected.add(i);
+      }
+
+      labelSelection.lastSelected = max - 1;
+      updateSelectionUI(type);
+    }
+
+    // Context Menu Functions
+    function showContextMenu(x, y, type) {
+      const menu = document.getElementById('labelsContextMenu');
+      menu.dataset.type = type;
+
+      // Update menu item states based on selection and connection status
+      const hasSelection = labelSelection.selected.size > 0;
+      const hasClipboard = labelSelection.clipboard.labels.length > 0;
+      const multipleSelected = labelSelection.selected.size > 1;
+      const editingAllowed = canEditLabels();
+
+      // Edit actions require connection in controller mode
+      menu.querySelector('[data-action="cut"]').classList.toggle('disabled', !hasSelection || !editingAllowed);
+      menu.querySelector('[data-action="copy"]').classList.toggle('disabled', !hasSelection);
+      menu.querySelector('[data-action="paste"]').classList.toggle('disabled', !hasClipboard || !editingAllowed);
+      menu.querySelector('[data-action="fill-increment"]').classList.toggle('disabled', !multipleSelected || !editingAllowed);
+
+      // Position menu
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+      menu.classList.add('visible');
+
+      // Adjust if menu goes off screen
+      const rect = menu.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        menu.style.left = `${window.innerWidth - rect.width - 10}px`;
+      }
+      if (rect.bottom > window.innerHeight) {
+        menu.style.top = `${window.innerHeight - rect.height - 10}px`;
+      }
+    }
+
+    function hideContextMenu() {
+      document.getElementById('labelsContextMenu').classList.remove('visible');
+    }
+
+    // Clipboard Operations
+    function cutSelectedLabels(type) {
+      copySelectedLabels(type);
+      labelSelection.clipboard.operation = 'cut';
+
+      // Clear the cut labels
+      const indices = Array.from(labelSelection.selected).sort((a, b) => a - b);
+      indices.forEach(async (index) => {
+        const defaultLabel = type === 'input' ? `Input ${index + 1}` : `Output ${index + 1}`;
+        if (type === 'input') {
+          await window.videoHub.setInputLabel(index, defaultLabel, currentView);
+        } else {
+          await window.videoHub.setOutputLabel(index, defaultLabel, currentView);
+        }
+      });
+
+      log(`Cut ${indices.length} label(s)`, 'info');
+    }
+
+    function copySelectedLabels(type) {
+      const labels = type === 'input' ? state.inputLabels : state.outputLabels;
+      const indices = Array.from(labelSelection.selected).sort((a, b) => a - b);
+
+      labelSelection.clipboard.labels = indices.map(index => ({
+        index: index,
+        label: labels[index] || (type === 'input' ? `Input ${index + 1}` : `Output ${index + 1}`)
+      }));
+      labelSelection.clipboard.operation = 'copy';
+
+      log(`Copied ${indices.length} label(s)`, 'info');
+    }
+
+    async function pasteLabels(type) {
+      if (labelSelection.clipboard.labels.length === 0) return;
+
+      const startIndex = labelSelection.lastSelected !== null
+        ? labelSelection.lastSelected
+        : Math.min(...labelSelection.selected);
+
+      const max = type === 'input' ? state.inputs : state.outputs;
+      let pasteCount = 0;
+
+      for (let i = 0; i < labelSelection.clipboard.labels.length; i++) {
+        const targetIndex = startIndex + i;
+        if (targetIndex >= max) break;
+
+        const label = labelSelection.clipboard.labels[i].label;
+        if (type === 'input') {
+          await window.videoHub.setInputLabel(targetIndex, label, currentView);
+        } else {
+          await window.videoHub.setOutputLabel(targetIndex, label, currentView);
+        }
+        pasteCount++;
+      }
+
+      log(`Pasted ${pasteCount} label(s)`, 'info');
+    }
+
+    // Fill and Increment
+    async function fillAndIncrement(type) {
+      try {
+        const indices = Array.from(labelSelection.selected).sort((a, b) => a - b);
+
+        if (indices.length < 2) {
+          log('Fill and Increment requires 2 or more selected labels. Use Ctrl+Click or Shift+Click to select.', 'error');
+          return;
+        }
+
+        const labels = type === 'input' ? state.inputLabels : state.outputLabels;
+        const firstIndex = indices[0];
+        const firstLabel = labels[firstIndex] || (type === 'input' ? `Input ${firstIndex + 1}` : `Output ${firstIndex + 1}`);
+
+        const incrementedLabels = generateIncrementedLabels(firstLabel, indices.length);
+
+        for (let i = 0; i < indices.length; i++) {
+          const targetIndex = indices[i];
+          const newLabel = incrementedLabels[i];
+
+          if (type === 'input') {
+            await window.videoHub.setInputLabel(targetIndex, newLabel, currentView);
+          } else {
+            await window.videoHub.setOutputLabel(targetIndex, newLabel, currentView);
+          }
+        }
+
+        log(`Filled ${indices.length} labels with increment pattern from "${firstLabel}"`, 'success');
+        clearLabelSelection();
+      } catch (err) {
+        console.error('fillAndIncrement error:', err);
+        log(`Fill and Increment error: ${err.message}`, 'error');
+      }
+    }
+
+    function generateIncrementedLabels(baseLabel, count) {
+      const labels = [baseLabel];
+
+      // Find the last number in the label to increment
+      const numberMatch = baseLabel.match(/(\d+)(?!.*\d)/);
+
+      if (!numberMatch) {
+        // No number found, just duplicate the label
+        for (let i = 1; i < count; i++) {
+          labels.push(baseLabel);
+        }
+        return labels;
+      }
+
+      const numberStr = numberMatch[1];
+      const numberStart = parseInt(numberStr, 10);
+      const numberIndex = numberMatch.index;
+      const prefix = baseLabel.substring(0, numberIndex);
+      const suffix = baseLabel.substring(numberIndex + numberStr.length);
+
+      // Preserve leading zeros if present
+      const padLength = numberStr.length;
+
+      for (let i = 1; i < count; i++) {
+        const newNumber = (numberStart + i).toString().padStart(padLength, '0');
+        labels.push(prefix + newNumber + suffix);
+      }
+
+      return labels;
+    }
+
+    // CSV Import/Export
+    // Export all labels (inputs and outputs) to a single CSV file
+    function exportAllLabelsToCSV() {
+      function escapeCSV(str) {
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      }
+
+      // 4-column format: Input Index, Input Label, Output Index, Output Label
+      let csv = 'Input Index,Input Label,Output Index,Output Label\n';
+
+      const maxRows = Math.max(state.inputs, state.outputs);
+      for (let i = 0; i < maxRows; i++) {
+        const inputIndex = i < state.inputs ? (i + 1) : '';
+        const inputLabel = i < state.inputs ? escapeCSV(state.inputLabels[i] || `Input ${i + 1}`) : '';
+        const outputIndex = i < state.outputs ? (i + 1) : '';
+        const outputLabel = i < state.outputs ? escapeCSV(state.outputLabels[i] || `Output ${i + 1}`) : '';
+        csv += `${inputIndex},${inputLabel},${outputIndex},${outputLabel}\n`;
+      }
+
+      // Create download link
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'router_labels.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      log(`Exported ${state.inputs} input and ${state.outputs} output labels to CSV`, 'success');
+    }
+
+    // Import all labels from a single CSV file
+    function importAllLabelsFromCSV() {
+      if (!canEditLabels()) {
+        log('Connect to a router first to import labels', 'error');
+        return;
+      }
+      const fileInput = document.getElementById('csvFileInput');
+      fileInput.dataset.targetType = 'all';
+      fileInput.click();
+    }
+
+    async function handleCSVFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const targetType = e.target.dataset.targetType;
+      const reader = new FileReader();
+
+      reader.onload = async (event) => {
+        const csv = event.target.result;
+        const lines = csv.split('\n');
+
+        // Detect format from header line
+        // New 4-column format: Input Index, Input Label, Output Index, Output Label
+        // Old 3-column format: Type, Index, Label
+        // Legacy 2-column format: Index, Label
+        const firstLine = lines[0].toLowerCase();
+        const isFourColumnFormat = firstLine.includes('input index') && firstLine.includes('output index');
+        const hasTypeColumn = firstLine.includes('type');
+        const hasHeader = firstLine.includes('index') || firstLine.includes('label') || firstLine.includes('type');
+        const startLine = hasHeader ? 1 : 0;
+
+        let inputCount = 0;
+        let outputCount = 0;
+
+        for (let i = startLine; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const parsed = parseCSVLine(line);
+
+          if (isFourColumnFormat && parsed.length >= 4) {
+            // New 4-column format: Input Index, Input Label, Output Index, Output Label
+            const inputIndex = parseInt(parsed[0], 10) - 1;
+            const inputLabel = parsed[1];
+            const outputIndex = parseInt(parsed[2], 10) - 1;
+            const outputLabel = parsed[3];
+
+            // Import input label if valid
+            if (!isNaN(inputIndex) && inputIndex >= 0 && inputIndex < state.inputs && inputLabel) {
+              await window.videoHub.setInputLabel(inputIndex, inputLabel, currentView);
+              inputCount++;
+            }
+
+            // Import output label if valid
+            if (!isNaN(outputIndex) && outputIndex >= 0 && outputIndex < state.outputs && outputLabel) {
+              await window.videoHub.setOutputLabel(outputIndex, outputLabel, currentView);
+              outputCount++;
+            }
+          } else if (hasTypeColumn && parsed.length >= 3) {
+            // Old 3-column format: Type, Index, Label
+            const type = parsed[0].toLowerCase();
+            const index = parseInt(parsed[1], 10) - 1;
+            const label = parsed[2];
+
+            if (isNaN(index) || index < 0) continue;
+
+            if (type === 'input' && index < state.inputs) {
+              await window.videoHub.setInputLabel(index, label, currentView);
+              inputCount++;
+            } else if (type === 'output' && index < state.outputs) {
+              await window.videoHub.setOutputLabel(index, label, currentView);
+              outputCount++;
+            }
+          } else if (parsed.length >= 2) {
+            // Legacy 2-column format: Index, Label - import based on targetType
+            const index = parseInt(parsed[0], 10) - 1;
+            const label = parsed[1];
+
+            if (isNaN(index) || index < 0) continue;
+
+            if (targetType === 'input' && index < state.inputs) {
+              await window.videoHub.setInputLabel(index, label, currentView);
+              inputCount++;
+            } else if (targetType === 'output' && index < state.outputs) {
+              await window.videoHub.setOutputLabel(index, label, currentView);
+              outputCount++;
+            } else if (targetType === 'all') {
+              // For legacy format with 'all' target, assume it's inputs only
+              if (index < state.inputs) {
+                await window.videoHub.setInputLabel(index, label, currentView);
+                inputCount++;
+              }
+            }
+          }
+        }
+
+        if (inputCount > 0 || outputCount > 0) {
+          const msg = [];
+          if (inputCount > 0) msg.push(`${inputCount} input`);
+          if (outputCount > 0) msg.push(`${outputCount} output`);
+          log(`Imported ${msg.join(' and ')} labels from CSV`, 'success');
+        } else {
+          log('No labels imported - check CSV format', 'error');
+        }
+      };
+
+      reader.readAsText(file);
+
+      // Reset file input
+      e.target.value = '';
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            // Escaped quote
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+
+      result.push(current.trim());
+      return result;
     }
 
     function renderXYGrid() {
@@ -1398,7 +2173,7 @@
         const isLockedByOther = lockState === 'L';
         const lockBtnClass = isLocked ? (isLockedByOther ? 'locked-other' : 'locked') : '';
         const lockIcon = isLocked ? LOCK_ICON_LOCKED : LOCK_ICON_UNLOCKED;
-        const lockTitle = isLockedByOther ? 'Locked by another client (Shift+click to force unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
+        const lockTitle = isLockedByOther ? 'Locked by another client (Ctrl+click to unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
 
         html += `<tr data-output="${o}">`;
         html += `<td class="lock-cell${lockVisibleClass}"><button class="xy-lock-btn ${lockBtnClass}" data-output="${o}" title="${lockTitle}">${lockIcon}</button></td>`;
@@ -1421,13 +2196,14 @@
             e.stopPropagation();
             const output = parseInt(e.currentTarget.dataset.output);
             const currentLock = state.outputLocks?.[output] || 'U';
-            // Force unlock with Shift+click
+            // Locked by another client - require Ctrl+click to force unlock
             if (currentLock === 'L') {
-              if (e.shiftKey) {
+              if (e.ctrlKey || e.metaKey) {
                 await window.videoHub.setLock(output, 'F', currentView);
               }
               return;
             }
+            // Normal toggle for own locks
             const newLock = currentLock === 'O' ? 'U' : 'O';
             await window.videoHub.setLock(output, newLock, currentView);
           });
@@ -1640,7 +2416,8 @@
       const isLargeBatch = changes.length > 50;
 
       for (const change of changes) {
-        const index = change.index;
+        // Handle both { index, label } and { input, label } formats
+        const index = change.index !== undefined ? change.index : change.input;
         const label = change.label;
 
         // Update state
@@ -1649,7 +2426,7 @@
         if (isLargeBatch) continue;
 
         // Update input label field
-        const labelInput = inputLabelsGrid.querySelector(`input[data-input="${index}"]`);
+        const labelInput = inputLabelsList.querySelector(`input[data-index="${index}"]`);
         if (labelInput && labelInput.value !== label && document.activeElement !== labelInput) {
           labelInput.value = label;
         }
@@ -1686,7 +2463,8 @@
       const isLargeBatch = changes.length > 50;
 
       for (const change of changes) {
-        const index = change.index;
+        // Handle both { index, label } and { output, label } formats
+        const index = change.index !== undefined ? change.index : change.output;
         const label = change.label;
 
         // Update state
@@ -1695,7 +2473,7 @@
         if (isLargeBatch) continue;
 
         // Update output label field
-        const labelInput = outputLabelsGrid.querySelector(`input[data-output="${index}"]`);
+        const labelInput = outputLabelsList.querySelector(`input[data-index="${index}"]`);
         if (labelInput && labelInput.value !== label && document.activeElement !== labelInput) {
           labelInput.value = label;
         }
@@ -1733,7 +2511,7 @@
         const isLocked = lock === 'O' || lock === 'L';
         const isLockedByOther = lock === 'L';
         const lockIcon = isLocked ? LOCK_ICON_LOCKED : LOCK_ICON_UNLOCKED;
-        const lockTitle = isLockedByOther ? 'Locked by another client (Shift+click to force unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
+        const lockTitle = isLockedByOther ? 'Locked by another client (Ctrl+click to unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
 
         // Update routing grid row
         const row = routingGrid.querySelector(`.routing-row:nth-child(${output + 1})`);
@@ -1827,8 +2605,7 @@
 
         const tabName = tab.dataset.tab;
         document.getElementById('routingPanel').style.display = tabName === 'routing' ? 'block' : 'none';
-        document.getElementById('inputsPanel').classList.toggle('active', tabName === 'inputs');
-        document.getElementById('outputsPanel').classList.toggle('active', tabName === 'outputs');
+        document.getElementById('labelsPanel').classList.toggle('active', tabName === 'labels');
         document.getElementById('xyPanel').classList.toggle('active', tabName === 'xy');
         if (tabName === 'xy') {
           renderXYGrid();
@@ -1919,6 +2696,9 @@
         state = newState;
         renderAll();
       }
+
+      // Update labels editing state (disabled in controller mode if not connected)
+      updateLabelsEditingState();
     }
 
     function getSimulatorTitle() {
@@ -1948,8 +2728,7 @@
     function updateLabelNotices() {
       // Show notices in controller view for SW-P-08 and GV Native
       const showNotice = currentView === 'controller' && (currentProtocol === 'swp08' || currentProtocol === 'gvnative');
-      document.getElementById('inputLabelsNotice').classList.toggle('visible', showNotice);
-      document.getElementById('outputLabelsNotice').classList.toggle('visible', showNotice);
+      document.getElementById('labelsNotice').classList.toggle('visible', showNotice);
     }
 
     function updateControllerStatus(status, message) {
@@ -1995,6 +2774,27 @@
         disconnectBtn.textContent = 'Disconnect';
         isConnected = false;
         isConnecting = false;
+      }
+
+      // Update labels panel editing state based on connection
+      updateLabelsEditingState();
+    }
+
+    // Update the labels panel to enable/disable editing based on connection status
+    function updateLabelsEditingState() {
+      const editingAllowed = canEditLabels();
+
+      // Update all label inputs
+      document.querySelectorAll('.label-input').forEach(input => {
+        input.disabled = !editingAllowed;
+        input.title = editingAllowed ? '' : 'Connect to a router to edit labels';
+      });
+
+      // Update import button
+      const importBtn = document.getElementById('importLabelsBtn');
+      if (importBtn) {
+        importBtn.disabled = !editingAllowed;
+        importBtn.title = editingAllowed ? '' : 'Connect to a router to import labels';
       }
     }
 
@@ -2317,6 +3117,140 @@
       logPanelOpen = !logPanelOpen;
       document.getElementById('logPanel').classList.toggle('open', logPanelOpen);
       document.getElementById('logDisclosure').classList.toggle('open', logPanelOpen);
+    });
+
+    // Label toolbar buttons
+    document.getElementById('importLabelsBtn').addEventListener('click', () => importAllLabelsFromCSV());
+    document.getElementById('exportLabelsBtn').addEventListener('click', () => exportAllLabelsToCSV());
+    document.getElementById('selectAllInputsBtn').addEventListener('click', () => selectAllLabels('input'));
+    document.getElementById('selectAllOutputsBtn').addEventListener('click', () => selectAllLabels('output'));
+
+    // CSV file input handler
+    document.getElementById('csvFileInput').addEventListener('change', handleCSVFileSelect);
+
+    // Context menu handlers
+    const menuItems = document.getElementById('labelsContextMenu').querySelectorAll('.context-menu-item');
+
+    menuItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const action = item.dataset.action;
+
+        if (item.classList.contains('disabled')) {
+          // Provide feedback for disabled actions
+          if (action === 'fill-increment') {
+            log('Fill and Increment requires 2 or more selected labels. Use Ctrl+Click or Shift+Click to select multiple.', 'error');
+          } else if (action === 'cut' || action === 'copy') {
+            log('No labels selected. Click on a row (not the text field) to select.', 'error');
+          } else if (action === 'paste') {
+            log('Clipboard is empty. Cut or copy labels first.', 'error');
+          }
+          hideContextMenu();
+          return;
+        }
+
+        // Check if editing is allowed (for actions that modify labels)
+        const editActions = ['cut', 'paste', 'fill-increment'];
+        if (editActions.includes(action) && !canEditLabels()) {
+          log('Connect to a router first to edit labels', 'error');
+          hideContextMenu();
+          return;
+        }
+
+        const type = document.getElementById('labelsContextMenu').dataset.type;
+
+        switch (action) {
+          case 'cut':
+            cutSelectedLabels(type);
+            break;
+          case 'copy':
+            copySelectedLabels(type);
+            break;
+          case 'paste':
+            pasteLabels(type);
+            break;
+          case 'fill-increment':
+            fillAndIncrement(type);
+            break;
+          case 'select-all':
+            selectAllLabels(type);
+            break;
+          case 'deselect':
+            clearLabelSelection();
+            break;
+        }
+
+        hideContextMenu();
+      });
+    });
+
+    // Hide context menu on click outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.context-menu')) {
+        hideContextMenu();
+      }
+    });
+
+    // Global keyboard shortcuts for labels
+    document.addEventListener('keydown', (e) => {
+      const labelsPanel = document.getElementById('labelsPanel');
+      const isLabelsActive = labelsPanel.classList.contains('active');
+
+      if (!isLabelsActive) return;
+
+      // Don't handle if focus is in a non-label input
+      if (document.activeElement.tagName === 'INPUT' &&
+          !document.activeElement.classList.contains('label-input')) {
+        return;
+      }
+
+      // Use the current selection type, or determine from focused element
+      let type = labelSelection.type;
+      if (!type && document.activeElement.classList.contains('label-input')) {
+        type = document.activeElement.dataset.type;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        // Select all in the currently focused column, or inputs by default
+        e.preventDefault();
+        if (document.activeElement.classList.contains('label-input')) {
+          selectAllLabels(document.activeElement.dataset.type);
+        } else if (type) {
+          selectAllLabels(type);
+        } else {
+          selectAllLabels('input');
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        if (labelSelection.selected.size > 0 && type) {
+          e.preventDefault();
+          copySelectedLabels(type);
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+        if (labelSelection.selected.size > 0 && type) {
+          e.preventDefault();
+          cutSelectedLabels(type);
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        if (labelSelection.clipboard.labels.length > 0 && type) {
+          e.preventDefault();
+          pasteLabels(type);
+        }
+      } else if (e.key === 'Escape') {
+        hideContextMenu();
+        clearLabelSelection();
+      }
+    });
+
+    // Set platform-specific hint text and keyboard shortcuts
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modKey = isMac ? 'Cmd' : 'Ctrl';
+    const hintText = `${modKey}+Click to multi-select, Right-click for options`;
+    document.getElementById('labelSelectionHint').textContent = hintText;
+
+    // Update context menu shortcuts with correct modifier key
+    document.querySelectorAll('.context-menu .shortcut[data-key]').forEach(span => {
+      span.textContent = `${modKey}+${span.dataset.key}`;
     });
 
     init();

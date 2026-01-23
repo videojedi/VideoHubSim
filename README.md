@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.0.3)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.1.0)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.0.3-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.3/Router.Protocol.Simulator-2.0.3-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.0.3.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.3/Router.Protocol.Simulator.Setup.2.0.3.exe) |
-| Windows Portable | [Router Protocol Simulator 2.0.3.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.0.3/Router.Protocol.Simulator.2.0.3.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.1.0-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.0/Router.Protocol.Simulator-2.1.0-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.1.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.0/Router.Protocol.Simulator.Setup.2.1.0.exe) |
+| Windows Portable | [Router Protocol Simulator 2.1.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.0/Router.Protocol.Simulator.2.1.0.exe) |
 
 ## Features
 
@@ -218,6 +218,16 @@ Ensure the server is started (green status indicator) before connecting clients.
 
 ## Changelog
 
+### v2.1.0
+- Enhanced Labels panel with combined input/output view
+- Multi-selection support (Shift+Click for range, Ctrl/Cmd+Click to toggle)
+- Right-click context menu with Cut, Copy, Paste operations
+- Fill and Increment: auto-generate sequential labels (e.g., "CAM 1" → "CAM 2", "CAM 3")
+- CSV import/export with 4-column format (Input Index, Input Label, Output Index, Output Label)
+- Tab key navigation through label fields
+- Controller mode: label editing disabled until connected to router
+- Keyboard shortcuts: Ctrl+A (select all), Ctrl+C/X/V (copy/cut/paste), Escape (deselect)
+
 ### v2.0.3
 - Simplified architecture: Simulator and controller now fully independent
 - View toggle switches between simulator and controller display
@@ -232,7 +242,6 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Added destination lock support for BlackMagic VideoHub protocol
 - Lock/unlock buttons in routing grid and XY crosspoint view
 - Visual lock status indicators (red=locked by you, orange=locked by other)
-- Force unlock with Shift+click for destinations locked by other clients
 - NAK response handling reverts crosspoint to previous state
 - Lock status changes shown in activity log
 

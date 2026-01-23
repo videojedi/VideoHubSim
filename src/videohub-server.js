@@ -42,10 +42,10 @@ class VideoHubServer extends EventEmitter {
       this.outputLabels[i] = this.defaultOutputLabels[i] || `Output ${i + 1}`;
     }
 
-    // Initialize locks (U = unlocked, O = owned/locked by client, L = locked by other)
-    this.outputLocks = {};
+    // Initialize locks - stores the socket that owns each lock (null = unlocked)
+    this.lockOwners = {};
     for (let i = 0; i < this.outputs; i++) {
-      this.outputLocks[i] = 'U';
+      this.lockOwners[i] = null;
     }
 
     this.clients = new Set();
@@ -93,13 +93,14 @@ class VideoHubServer extends EventEmitter {
     this.clients.add(socket);
     this.emit('client-connected', clientId);
 
-    // Send initial status dump
-    socket.write(this.getFullStatus());
+    // Send initial status dump (with client-specific lock states)
+    socket.write(this.getFullStatus(socket));
 
     let buffer = '';
 
     socket.on('data', (data) => {
-      buffer += data.toString();
+      // Normalize line endings (handle \r\n and \r)
+      buffer += data.toString().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
       // Process complete blocks (terminated by double newline)
       const blocks = buffer.split('\n\n');
@@ -114,6 +115,21 @@ class VideoHubServer extends EventEmitter {
 
     socket.on('close', () => {
       this.clients.delete(socket);
+
+      // Clear any locks owned by this client
+      const changes = [];
+      for (let i = 0; i < this.outputs; i++) {
+        if (this.lockOwners[i] === socket) {
+          this.lockOwners[i] = null;
+          changes.push({ output: i });
+        }
+      }
+      if (changes.length > 0) {
+        this.broadcastLockChange(changes);
+        const emitChanges = changes.map(c => ({ output: c.output, lock: 'U' }));
+        this.emit('locks-changed', emitChanges);
+      }
+
       this.emit('client-disconnected', clientId);
     });
 
@@ -135,16 +151,34 @@ class VideoHubServer extends EventEmitter {
     }
 
     if (header === 'VIDEO OUTPUT ROUTING:') {
+      // Check if this is a query (no data lines) or a command
+      const dataLines = lines.slice(1).filter(l => l.trim());
+
+      if (dataLines.length === 0) {
+        // Query - respond with ACK and send full routing table
+        socket.write('ACK\n\n');
+        let response = 'VIDEO OUTPUT ROUTING:\n';
+        for (let i = 0; i < this.outputs; i++) {
+          response += `${i} ${this.routing[i]}\n`;
+        }
+        response += '\n';
+        socket.write(response);
+        return;
+      }
+
+      // Command - process routing changes
       const changes = [];
-      for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(' ');
+      for (const line of dataLines) {
+        const parts = line.split(' ');
         if (parts.length === 2) {
           const output = parseInt(parts[0], 10);
           const input = parseInt(parts[1], 10);
 
+          // Check if locked by another client (lockOwners[output] exists and is not this socket)
+          const lockedByOther = this.lockOwners[output] !== null && this.lockOwners[output] !== socket;
           if (output >= 0 && output < this.outputs &&
               input >= 0 && input < this.inputs &&
-              this.outputLocks[output] !== 'L') {
+              !lockedByOther) {
             this.routing[output] = input;
             changes.push({ output, input });
           }
@@ -162,22 +196,66 @@ class VideoHubServer extends EventEmitter {
     }
 
     if (header === 'VIDEO OUTPUT LOCKS:') {
+      // Check if this is a query (no data lines) or a command
+      const dataLines = lines.slice(1).filter(l => l.trim());
+
+      if (dataLines.length === 0) {
+        // Query - respond with ACK and send lock status for this client
+        socket.write('ACK\n\n');
+        let response = 'VIDEO OUTPUT LOCKS:\n';
+        for (let i = 0; i < this.outputs; i++) {
+          const owner = this.lockOwners[i];
+          let lockState;
+          if (owner === null) {
+            lockState = 'U';
+          } else if (owner === socket) {
+            lockState = 'O';
+          } else {
+            lockState = 'L';
+          }
+          response += `${i} ${lockState}\n`;
+        }
+        response += '\n';
+        socket.write(response);
+        return;
+      }
+
+      // Command - process lock changes
       const changes = [];
-      for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(' ');
-        if (parts.length === 2) {
+      for (const line of dataLines) {
+        const parts = line.split(' ');
+        if (parts.length >= 2) {
           const output = parseInt(parts[0], 10);
           const lockState = parts[1];
 
-          if (output >= 0 && output < this.outputs &&
-              ['O', 'U', 'F'].includes(lockState)) {
-            // F = force unlock
-            if (lockState === 'F') {
-              this.outputLocks[output] = 'U';
+          this.emit('command-received', {
+            clientId: socket.remoteAddress,
+            command: `LOCK: Output ${output} = "${lockState}"`
+          });
+
+          if (output >= 0 && output < this.outputs) {
+            const upperLock = lockState.toUpperCase();
+            if (upperLock === 'O') {
+              // Lock this output - this client now owns it
+              this.lockOwners[output] = socket;
+              changes.push({ output, socket });
+            } else if (upperLock === 'U') {
+              // Unlock - only works if unlocked or owned by this client
+              if (this.lockOwners[output] === null || this.lockOwners[output] === socket) {
+                this.lockOwners[output] = null;
+                changes.push({ output, socket });
+              }
+            } else if (upperLock === 'F') {
+              // Force unlock - clears lock regardless of owner
+              this.lockOwners[output] = null;
+              changes.push({ output, socket });
             } else {
-              this.outputLocks[output] = lockState === 'O' ? 'O' : 'U';
+              // Unknown lock state
+              this.emit('command-received', {
+                clientId: socket.remoteAddress,
+                command: `UNKNOWN LOCK STATE: "${lockState}" for output ${output}`
+              });
             }
-            changes.push({ output, lock: this.outputLocks[output] });
           }
         }
       }
@@ -185,7 +263,12 @@ class VideoHubServer extends EventEmitter {
       if (changes.length > 0) {
         socket.write('ACK\n\n');
         this.broadcastLockChange(changes);
-        this.emit('locks-changed', changes);
+        // Emit with generic lock state for internal use
+        const emitChanges = changes.map(c => ({
+          output: c.output,
+          lock: this.lockOwners[c.output] ? 'O' : 'U'
+        }));
+        this.emit('locks-changed', emitChanges);
       } else {
         socket.write('NAK\n\n');
       }
@@ -193,9 +276,25 @@ class VideoHubServer extends EventEmitter {
     }
 
     if (header === 'INPUT LABELS:') {
+      // Check if this is a query (no data lines) or a command
+      const dataLines = lines.slice(1).filter(l => l.trim());
+
+      if (dataLines.length === 0) {
+        // Query - respond with ACK and send all input labels
+        socket.write('ACK\n\n');
+        let response = 'INPUT LABELS:\n';
+        for (let i = 0; i < this.inputs; i++) {
+          response += `${i} ${this.inputLabels[i]}\n`;
+        }
+        response += '\n';
+        socket.write(response);
+        return;
+      }
+
+      // Command - process label changes
       const changes = [];
-      for (let i = 1; i < lines.length; i++) {
-        const match = lines[i].match(/^(\d+)\s+(.*)$/);
+      for (const line of dataLines) {
+        const match = line.match(/^(\d+)\s+(.*)$/);
         if (match) {
           const input = parseInt(match[1], 10);
           const label = match[2];
@@ -218,9 +317,25 @@ class VideoHubServer extends EventEmitter {
     }
 
     if (header === 'OUTPUT LABELS:') {
+      // Check if this is a query (no data lines) or a command
+      const dataLines = lines.slice(1).filter(l => l.trim());
+
+      if (dataLines.length === 0) {
+        // Query - respond with ACK and send all output labels
+        socket.write('ACK\n\n');
+        let response = 'OUTPUT LABELS:\n';
+        for (let i = 0; i < this.outputs; i++) {
+          response += `${i} ${this.outputLabels[i]}\n`;
+        }
+        response += '\n';
+        socket.write(response);
+        return;
+      }
+
+      // Command - process label changes
       const changes = [];
-      for (let i = 1; i < lines.length; i++) {
-        const match = lines[i].match(/^(\d+)\s+(.*)$/);
+      for (const line of dataLines) {
+        const match = line.match(/^(\d+)\s+(.*)$/);
         if (match) {
           const output = parseInt(match[1], 10);
           const label = match[2];
@@ -246,7 +361,7 @@ class VideoHubServer extends EventEmitter {
     this.emit('unknown-command', { clientId, command: block });
   }
 
-  getFullStatus() {
+  getFullStatus(socket) {
     let status = '';
 
     // Protocol preamble
@@ -281,17 +396,26 @@ class VideoHubServer extends EventEmitter {
     }
     status += '\n';
 
-    // Video output locks
-    status += 'VIDEO OUTPUT LOCKS:\n';
-    for (let i = 0; i < this.outputs; i++) {
-      status += `${i} ${this.outputLocks[i]}\n`;
-    }
-    status += '\n';
-
-    // Video output routing
+    // Video output routing (must come before locks per protocol spec)
     status += 'VIDEO OUTPUT ROUTING:\n';
     for (let i = 0; i < this.outputs; i++) {
       status += `${i} ${this.routing[i]}\n`;
+    }
+    status += '\n';
+
+    // Video output locks - client-specific (O = you own it, L = someone else, U = unlocked)
+    status += 'VIDEO OUTPUT LOCKS:\n';
+    for (let i = 0; i < this.outputs; i++) {
+      const owner = this.lockOwners[i];
+      let lockState;
+      if (owner === null) {
+        lockState = 'U';
+      } else if (owner === socket) {
+        lockState = 'O';
+      } else {
+        lockState = 'L';
+      }
+      status += `${i} ${lockState}\n`;
     }
     status += '\n';
 
@@ -318,12 +442,28 @@ class VideoHubServer extends EventEmitter {
   }
 
   broadcastLockChange(changes) {
-    let message = 'VIDEO OUTPUT LOCKS:\n';
-    for (const change of changes) {
-      message += `${change.output} ${change.lock}\n`;
+    // Send client-specific lock status (O = you own it, L = someone else owns it, U = unlocked)
+    for (const client of this.clients) {
+      let message = 'VIDEO OUTPUT LOCKS:\n';
+      for (const change of changes) {
+        const owner = this.lockOwners[change.output];
+        let lockState;
+        if (owner === null) {
+          lockState = 'U';
+        } else if (owner === client) {
+          lockState = 'O';
+        } else {
+          lockState = 'L';
+        }
+        message += `${change.output} ${lockState}\n`;
+      }
+      message += '\n';
+      try {
+        client.write(message);
+      } catch (err) {
+        // Client may have disconnected
+      }
     }
-    message += '\n';
-    this.broadcast(message);
   }
 
   broadcastInputLabelChange(changes) {
@@ -377,17 +517,35 @@ class VideoHubServer extends EventEmitter {
   }
 
   setLock(output, lock) {
-    if (output >= 0 && output < this.outputs && ['O', 'U', 'F'].includes(lock)) {
-      const newLockState = lock === 'F' ? 'U' : lock;
-      this.outputLocks[output] = newLockState;
-      this.broadcastLockChange([{ output, lock: newLockState }]);
-      this.emit('locks-changed', [{ output, lock: newLockState }]);
+    if (output >= 0 && output < this.outputs && ['O', 'U'].includes(lock)) {
+      if (lock === 'O') {
+        // Use a special marker for UI-triggered locks
+        this.lockOwners[output] = 'UI';
+      } else {
+        this.lockOwners[output] = null;
+      }
+      this.broadcastLockChange([{ output }]);
+      this.emit('locks-changed', [{ output, lock }]);
       return true;
     }
     return false;
   }
 
   getState() {
+    // Build outputLocks from lockOwners for UI display
+    // From the simulator UI perspective: UI locks show as 'O', client locks show as 'L'
+    const outputLocks = {};
+    for (let i = 0; i < this.outputs; i++) {
+      const owner = this.lockOwners[i];
+      if (owner === null) {
+        outputLocks[i] = 'U';
+      } else if (owner === 'UI') {
+        outputLocks[i] = 'O';
+      } else {
+        outputLocks[i] = 'L';  // Locked by a connected client
+      }
+    }
+
     return {
       inputs: this.inputs,
       outputs: this.outputs,
@@ -396,7 +554,7 @@ class VideoHubServer extends EventEmitter {
       routing: { ...this.routing },
       inputLabels: { ...this.inputLabels },
       outputLabels: { ...this.outputLabels },
-      outputLocks: { ...this.outputLocks },
+      outputLocks,
       clientCount: this.clients.size
     };
   }
@@ -421,8 +579,8 @@ class VideoHubServer extends EventEmitter {
       if (this.routing[i] === undefined) {
         this.routing[i] = i < this.inputs ? i : 0;
       }
-      if (this.outputLocks[i] === undefined) {
-        this.outputLocks[i] = 'U';
+      if (this.lockOwners[i] === undefined) {
+        this.lockOwners[i] = null;
       }
     }
   }

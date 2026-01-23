@@ -393,6 +393,7 @@ class VideoHubController extends EventEmitter {
     }
 
     // Valid lock states: O = owned/locked, U = unlocked, F = force unlock
+    // Note: L (locked by other) is receive-only, cannot be sent
     if (!['O', 'U', 'F'].includes(lock)) {
       throw new Error('Invalid lock state. Use O (lock), U (unlock), or F (force unlock)');
     }
@@ -401,7 +402,8 @@ class VideoHubController extends EventEmitter {
 
     // Track the old value before optimistic update
     const oldLock = this.outputLocks[output];
-    const newLockState = lock === 'F' ? 'U' : lock; // Force unlock results in unlocked state
+    // F (force unlock) results in U (unlocked) state
+    const newLockState = lock === 'F' ? 'U' : lock;
 
     if (oldLock !== newLockState) {
       // Store pending change for potential rollback on NAK
