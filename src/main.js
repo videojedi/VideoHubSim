@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const VideoHubServer = require('./videohub-server');
@@ -533,6 +533,97 @@ function setupIpcHandlers() {
 }
 
 app.whenReady().then(async () => {
+  // Set up About panel
+  const iconsPath = path.join(__dirname, '..', 'icons');
+  const buildPath = path.join(__dirname, '..', 'build');
+
+  app.setAboutPanelOptions({
+    applicationName: 'Router Protocol Simulator',
+    applicationVersion: app.getVersion(),
+    copyright: '© 2026 Video Walrus Ltd',
+    credits: 'Simulates Blackmagic VideoHub, SW-P-08, and GV Native protocols',
+    iconPath: path.join(iconsPath, 'VWLogo.png')
+  });
+
+  // Create application menu with About
+  const isMac = process.platform === 'darwin';
+  const template = [
+    ...(isMac ? [{
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    }] : []),
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac ? [
+          { type: 'separator' },
+          { role: 'front' }
+        ] : [
+          { role: 'close' }
+        ])
+      ]
+    },
+    ...(!isMac ? [{
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About Router Protocol Simulator',
+          click: () => {
+            const { dialog } = require('electron');
+            dialog.showMessageBox({
+              type: 'info',
+              title: 'About Router Protocol Simulator',
+              message: 'Router Protocol Simulator',
+              detail: `Version ${app.getVersion()}\n\n© 2026 Video Walrus Ltd\n\nSimulates Blackmagic VideoHub, SW-P-08, and GV Native protocols.`,
+              icon: nativeImage.createFromPath(path.join(buildPath, 'icon.png'))
+            });
+          }
+        }
+      ]
+    }] : [])
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+
   // Load saved settings
   loadSettings();
 

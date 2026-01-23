@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.1.0)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.1.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.1.0-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.0/Router.Protocol.Simulator-2.1.0-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.1.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.0/Router.Protocol.Simulator.Setup.2.1.0.exe) |
-| Windows Portable | [Router Protocol Simulator 2.1.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.0/Router.Protocol.Simulator.2.1.0.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.1.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.1/Router.Protocol.Simulator-2.1.1-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.1/Router.Protocol.Simulator.Setup.2.1.1.exe) |
+| Windows Portable | [Router Protocol Simulator 2.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.1/Router.Protocol.Simulator.2.1.1.exe) |
 
 ## Features
 
@@ -217,6 +217,10 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Some clients may require specifying matrix/level 0
 
 ## Changelog
+
+### v2.1.1
+- Added About panel with Video Walrus Ltd branding and copyright
+- Application menu with About option on macOS and Windows
 
 ### v2.1.0
 - Enhanced Labels panel with combined input/output view
