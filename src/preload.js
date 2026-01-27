@@ -31,6 +31,11 @@ contextBridge.exposeInMainWorld('videoHub', {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
 
+  // Router history
+  getRouterHistory: () => ipcRenderer.invoke('get-router-history'),
+  addRouterToHistory: (router) => ipcRenderer.invoke('add-router-to-history', router),
+  removeRouterFromHistory: (index) => ipcRenderer.invoke('remove-router-from-history', index),
+
   // View control (what's displayed - doesn't affect functionality)
   getView: () => ipcRenderer.invoke('get-view'),
   setView: (view) => ipcRenderer.invoke('set-view', view),

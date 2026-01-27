@@ -55,7 +55,9 @@ function loadSettings() {
     controllerPort: 9990,
     controllerLevels: 1,
     autoReconnect: true,
-    autoConnect: false
+    autoConnect: false,
+    // Router connection history
+    routerHistory: []
   };
   return settings;
 }
@@ -447,6 +449,46 @@ function setupIpcHandlers() {
     settings.autoStart = enabled;
     saveSettings();
     return { success: true };
+  });
+
+  // Router history management
+  ipcMain.handle('get-router-history', () => {
+    return settings.routerHistory || [];
+  });
+
+  ipcMain.handle('add-router-to-history', (event, router) => {
+    if (!settings.routerHistory) settings.routerHistory = [];
+
+    // Create unique key for this router
+    const key = `${router.host}:${router.port}:${router.protocol}`;
+
+    // Remove existing entry with same key
+    settings.routerHistory = settings.routerHistory.filter(r =>
+      `${r.host}:${r.port}:${r.protocol}` !== key
+    );
+
+    // Add to beginning of list
+    settings.routerHistory.unshift({
+      host: router.host,
+      port: router.port,
+      protocol: router.protocol,
+      name: router.name || '',
+      lastConnected: new Date().toISOString()
+    });
+
+    // Keep only last 10 entries
+    settings.routerHistory = settings.routerHistory.slice(0, 10);
+
+    saveSettings();
+    return settings.routerHistory;
+  });
+
+  ipcMain.handle('remove-router-from-history', (event, index) => {
+    if (settings.routerHistory && index >= 0 && index < settings.routerHistory.length) {
+      settings.routerHistory.splice(index, 1);
+      saveSettings();
+    }
+    return settings.routerHistory || [];
   });
 
   // View control (what's displayed in the UI)

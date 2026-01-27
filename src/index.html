@@ -163,6 +163,112 @@
       border-color: #4a69bd;
     }
 
+    .host-input-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .host-input-group input {
+      flex: 1;
+    }
+
+    .btn-history {
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #aaa;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .btn-history:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .router-history-dropdown {
+      display: none;
+      position: absolute;
+      z-index: 100;
+      background: #1a1a2e;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      margin-top: 4px;
+      max-height: 250px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      min-width: 280px;
+    }
+
+    .router-history-dropdown.visible {
+      display: block;
+    }
+
+    .router-history-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .router-history-item:last-child {
+      border-bottom: none;
+    }
+
+    .router-history-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .router-history-item .router-info {
+      flex: 1;
+    }
+
+    .router-history-item .router-name {
+      font-weight: 500;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .router-history-item .router-address {
+      font-size: 0.8rem;
+      color: #888;
+      font-family: monospace;
+    }
+
+    .router-history-item .router-protocol {
+      font-size: 0.7rem;
+      color: #4a69bd;
+      text-transform: uppercase;
+    }
+
+    .router-history-item .remove-btn {
+      padding: 4px 8px;
+      border: none;
+      background: transparent;
+      color: #666;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .router-history-item:hover .remove-btn {
+      opacity: 1;
+    }
+
+    .router-history-item .remove-btn:hover {
+      color: #ff6b6b;
+    }
+
+    .router-history-empty {
+      padding: 15px;
+      text-align: center;
+      color: #666;
+      font-size: 0.85rem;
+    }
+
     .client-list {
       list-style: none;
     }
@@ -752,10 +858,49 @@
       background: #0d1117;
       border-left: 1px solid rgba(255, 255, 255, 0.1);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
+      min-width: 30px;
     }
 
     .xy-grid th.corner.with-lock {
       left: 32px;
+    }
+
+    .xy-grid th.corner:nth-child(3) {
+      left: 30px;
+    }
+
+    .xy-grid th.corner.with-lock + th.corner {
+      left: 62px;
+    }
+
+    .xy-grid th.corner.minimap-cell {
+      padding: 4px;
+      vertical-align: top;
+    }
+
+    .xy-minimap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 80px;
+      min-height: 60px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    .xy-minimap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .xy-minimap-viewport {
+      position: absolute;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+      box-sizing: border-box;
     }
 
     .xy-grid thead tr th:first-child {
@@ -788,6 +933,19 @@
       text-overflow: ellipsis;
       max-height: 75px;
       color: #2ed573;
+    }
+
+    .xy-grid th.input-index {
+      font-size: 11px;
+      color: #888;
+      font-weight: normal;
+      text-align: center;
+      padding: 2px 4px;
+    }
+
+    .xy-grid tr.index-row th {
+      height: auto;
+      vertical-align: middle;
     }
 
     .xy-grid th.lock-header {
@@ -877,6 +1035,31 @@
       text-overflow: ellipsis;
       color: #ff6b6b;
       z-index: 1;
+    }
+
+    .xy-grid td.output-index {
+      position: sticky;
+      left: 0;
+      background: #0d1117;
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+      padding: 0 6px;
+      min-width: 30px;
+      max-width: 30px;
+      z-index: 1;
+    }
+
+    .xy-grid td.output-index.with-lock {
+      left: 32px;
+    }
+
+    .xy-grid td.output-label.after-index {
+      left: 30px;
+    }
+
+    .xy-grid td.output-label.after-index.with-lock {
+      left: 62px;
     }
 
     .xy-grid td.output-label.with-lock {
@@ -1167,7 +1350,11 @@
           </div>
           <div class="config-group">
             <label>Router Host / IP</label>
-            <input type="text" id="controllerHost" value="127.0.0.1" placeholder="127.0.0.1">
+            <div class="host-input-group">
+              <input type="text" id="controllerHost" value="127.0.0.1" placeholder="127.0.0.1">
+              <button type="button" class="btn-history" id="routerHistoryBtn" title="Recent routers">&#x25BC;</button>
+            </div>
+            <div class="router-history-dropdown" id="routerHistoryDropdown"></div>
           </div>
           <div class="config-group">
             <label>Router Port</label>
@@ -1365,6 +1552,93 @@
     const controllerStatusDot = document.getElementById('controllerStatusDot');
     const controllerStatusText = document.getElementById('controllerStatusText');
     const controllerLevelsGroup = document.getElementById('controllerLevelsGroup');
+    const routerHistoryBtn = document.getElementById('routerHistoryBtn');
+    const routerHistoryDropdown = document.getElementById('routerHistoryDropdown');
+
+    // Router history dropdown
+    async function loadRouterHistory() {
+      const history = await window.videoHub.getRouterHistory();
+      renderRouterHistory(history);
+    }
+
+    function renderRouterHistory(history) {
+      if (!history || history.length === 0) {
+        routerHistoryDropdown.innerHTML = '<div class="router-history-empty">No recent routers</div>';
+        return;
+      }
+
+      routerHistoryDropdown.innerHTML = history.map((router, index) => {
+        const displayName = router.name || 'Unknown Router';
+        const protocolLabels = { videohub: 'VideoHub', swp08: 'SW-P-08', gvnative: 'GV Native' };
+        const protocolLabel = protocolLabels[router.protocol] || router.protocol;
+
+        return `
+          <div class="router-history-item" data-index="${index}" data-host="${router.host}" data-port="${router.port}" data-protocol="${router.protocol}">
+            <div class="router-info">
+              <div class="router-name">${displayName}</div>
+              <div class="router-address">${router.host}:${router.port}</div>
+              <div class="router-protocol">${protocolLabel}</div>
+            </div>
+            <button class="remove-btn" data-index="${index}" title="Remove from history">&times;</button>
+          </div>
+        `;
+      }).join('');
+
+      // Add click handlers
+      routerHistoryDropdown.querySelectorAll('.router-history-item').forEach(item => {
+        item.addEventListener('click', async (e) => {
+          if (e.target.classList.contains('remove-btn')) {
+            e.stopPropagation();
+            const index = parseInt(e.target.dataset.index);
+            const newHistory = await window.videoHub.removeRouterFromHistory(index);
+            renderRouterHistory(newHistory);
+            return;
+          }
+
+          const host = item.dataset.host;
+          const port = item.dataset.port;
+          const protocol = item.dataset.protocol;
+
+          // Update form fields
+          document.getElementById('controllerHost').value = host;
+          document.getElementById('controllerPort').value = port;
+
+          // Switch protocol if different
+          if (protocol !== currentProtocol) {
+            const result = await window.videoHub.switchProtocol(protocol);
+            if (result.success) {
+              state = result.state;
+              document.getElementById('protocolSelect').value = protocol;
+              updateProtocolUI(protocol, false);
+              updateControllerProtocolUI();
+              renderAll();
+            }
+          }
+
+          // Hide dropdown
+          routerHistoryDropdown.classList.remove('visible');
+
+          // Optionally auto-connect
+          connectBtn.click();
+        });
+      });
+    }
+
+    routerHistoryBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const isVisible = routerHistoryDropdown.classList.contains('visible');
+      if (!isVisible) {
+        await loadRouterHistory();
+      }
+      routerHistoryDropdown.classList.toggle('visible');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!routerHistoryDropdown.contains(e.target) && e.target !== routerHistoryBtn) {
+        routerHistoryDropdown.classList.remove('visible');
+      }
+    });
 
     // Label selection state
     let labelSelection = {
@@ -2128,6 +2402,45 @@
       return result;
     }
 
+    // Update minimap crosspoints (called on routing changes)
+    function updateMinimap() {
+      const minimap = document.getElementById('xyMinimap');
+      const minimapCanvas = document.getElementById('xyMinimapCanvas');
+      if (!minimap || !minimapCanvas) return;
+
+      const ctx = minimapCanvas.getContext('2d');
+      const routing = getCurrentRouting();
+      const rect = minimap.getBoundingClientRect();
+      const width = Math.floor(rect.width);
+      const height = Math.floor(rect.height);
+
+      if (width <= 0 || height <= 0) return;
+
+      minimapCanvas.width = width;
+      minimapCanvas.height = height;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+
+      // Calculate dot size and spacing
+      const dotSpacingX = width / state.inputs;
+      const dotSpacingY = height / state.outputs;
+      const dotSize = Math.max(1, Math.min(dotSpacingX, dotSpacingY) * 0.6);
+
+      // Draw crosspoints
+      ctx.fillStyle = '#2ed573';
+      for (let o = 0; o < state.outputs; o++) {
+        const input = routing[o];
+        if (input !== undefined && input >= 0 && input < state.inputs) {
+          const x = (input + 0.5) * dotSpacingX;
+          const y = (o + 0.5) * dotSpacingY;
+          ctx.beginPath();
+          ctx.arc(x, y, dotSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
     function renderXYGrid() {
       const xyGrid = document.getElementById('xyGrid');
       const xyLevelSelector = document.getElementById('xyLevelSelector');
@@ -2156,7 +2469,17 @@
       const lockVisibleClass = isBlackMagic ? ' visible' : '';
 
       // Build table
-      let html = `<thead><tr><th class="lock-header${lockVisibleClass}" title="Lock"></th><th class="corner${isBlackMagic ? ' with-lock' : ''}"></th>`;
+      const cornerColspan = isBlackMagic ? 3 : 2; // lock + index + label columns
+
+      // Index row first
+      let html = `<thead><tr class="index-row"><th class="corner minimap-cell" rowspan="2" colspan="${cornerColspan}"><div class="xy-minimap" id="xyMinimap"><canvas id="xyMinimapCanvas"></canvas><div class="xy-minimap-viewport" id="xyMinimapViewport"></div></div></th>`;
+      for (let i = 0; i < state.inputs; i++) {
+        html += `<th class="input-index">${i + 1}</th>`;
+      }
+      html += '</tr>';
+
+      // Label row
+      html += `<tr>`;
 
       // Input headers
       for (let i = 0; i < state.inputs; i++) {
@@ -2177,7 +2500,8 @@
 
         html += `<tr data-output="${o}">`;
         html += `<td class="lock-cell${lockVisibleClass}"><button class="xy-lock-btn ${lockBtnClass}" data-output="${o}" title="${lockTitle}">${lockIcon}</button></td>`;
-        html += `<td class="output-label${isBlackMagic ? ' with-lock' : ''}" data-output="${o}" title="${outputLabel}">${outputLabel}</td>`;
+        html += `<td class="output-index${isBlackMagic ? ' with-lock' : ''}">${o + 1}</td>`;
+        html += `<td class="output-label after-index${isBlackMagic ? ' with-lock' : ''}" data-output="${o}" title="${outputLabel}">${outputLabel}</td>`;
 
         for (let i = 0; i < state.inputs; i++) {
           const isActive = routing[o] === i;
@@ -2213,6 +2537,62 @@
       // Drag state for sequential routing
       let dragStart = null;
       let isDragging = false;
+      let autoScrollInterval = null;
+      const gridContainer = xyGrid.parentElement; // .xy-grid-container
+
+      function stopAutoScroll() {
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval);
+          autoScrollInterval = null;
+        }
+      }
+
+      function startAutoScroll(scrollX, scrollY) {
+        stopAutoScroll();
+        if (scrollX === 0 && scrollY === 0) return;
+
+        autoScrollInterval = setInterval(() => {
+          gridContainer.scrollLeft += scrollX;
+          gridContainer.scrollTop += scrollY;
+        }, 16); // ~60fps
+      }
+
+      function handleDragMove(clientX, clientY) {
+        if (!isDragging || !dragStart) return;
+
+        const containerRect = gridContainer.getBoundingClientRect();
+        const edgeThreshold = 40;
+        const scrollSpeed = 8;
+
+        let scrollX = 0;
+        let scrollY = 0;
+
+        // Check if near edges and calculate scroll direction
+        if (clientX < containerRect.left + edgeThreshold) {
+          scrollX = -scrollSpeed;
+        } else if (clientX > containerRect.right - edgeThreshold) {
+          scrollX = scrollSpeed;
+        }
+
+        if (clientY < containerRect.top + edgeThreshold) {
+          scrollY = -scrollSpeed;
+        } else if (clientY > containerRect.bottom - edgeThreshold) {
+          scrollY = scrollSpeed;
+        }
+
+        startAutoScroll(scrollX, scrollY);
+
+        // Find the cell under the cursor
+        const element = document.elementFromPoint(clientX, clientY);
+        if (element) {
+          const cell = element.closest('.crosspoint');
+          if (cell) {
+            const output = parseInt(cell.dataset.output);
+            const input = parseInt(cell.dataset.input);
+            updateDragPreview(dragStart, { output, input });
+          }
+        }
+      }
 
       function clearDragPreview() {
         xyGrid.querySelectorAll('.crosspoint.drag-preview').forEach(c => c.classList.remove('drag-preview'));
@@ -2272,6 +2652,67 @@
         }
       }
 
+      // Track last known drag end position for when releasing outside grid
+      let lastDragEnd = null;
+
+      // Document-level mousemove handler for drag
+      function onDocumentMouseMove(e) {
+        if (!isDragging) return;
+        handleDragMove(e.clientX, e.clientY);
+
+        // Track last valid cell position
+        const element = document.elementFromPoint(e.clientX, e.clientY);
+        if (element) {
+          const cell = element.closest('.crosspoint');
+          if (cell) {
+            lastDragEnd = {
+              output: parseInt(cell.dataset.output),
+              input: parseInt(cell.dataset.input)
+            };
+          }
+        }
+      }
+
+      // Document-level mouseup handler
+      async function onDocumentMouseUp(e) {
+        if (!isDragging) return;
+
+        stopAutoScroll();
+        clearDragPreview();
+        xyGrid.classList.remove('dragging');
+
+        // Try to find cell under cursor first
+        const element = document.elementFromPoint(e.clientX, e.clientY);
+        let dragEnd = null;
+        if (element) {
+          const cell = element.closest('.crosspoint');
+          if (cell) {
+            dragEnd = {
+              output: parseInt(cell.dataset.output),
+              input: parseInt(cell.dataset.input)
+            };
+          }
+        }
+
+        // Fall back to last known position
+        if (!dragEnd && lastDragEnd) {
+          dragEnd = lastDragEnd;
+        }
+
+        // Apply routes if we have a valid end position
+        if (dragStart && dragEnd) {
+          await applyDragRoutes(dragStart, dragEnd);
+        }
+
+        dragStart = null;
+        lastDragEnd = null;
+        isDragging = false;
+
+        // Remove document listeners
+        document.removeEventListener('mousemove', onDocumentMouseMove);
+        document.removeEventListener('mouseup', onDocumentMouseUp);
+      }
+
       // Add event handlers
       xyGrid.querySelectorAll('.crosspoint').forEach(cell => {
         cell.addEventListener('mousedown', (e) => {
@@ -2280,19 +2721,21 @@
             output: parseInt(cell.dataset.output),
             input: parseInt(cell.dataset.input)
           };
+          lastDragEnd = dragStart;
           isDragging = true;
           xyGrid.classList.add('dragging');
           updateDragPreview(dragStart, dragStart);
+
+          // Add document-level listeners for drag
+          document.addEventListener('mousemove', onDocumentMouseMove);
+          document.addEventListener('mouseup', onDocumentMouseUp);
         });
 
         cell.addEventListener('mouseenter', () => {
           const input = cell.dataset.input;
           const output = cell.dataset.output;
 
-          if (isDragging && dragStart) {
-            // Update drag preview
-            updateDragPreview(dragStart, { output: parseInt(output), input: parseInt(input) });
-          } else {
+          if (!isDragging) {
             // Normal hover highlight
             const inputHeader = xyGrid.querySelector(`th.input-header[data-input="${input}"]`);
             const outputLabel = xyGrid.querySelector(`td.output-label[data-output="${output}"]`);
@@ -2311,44 +2754,117 @@
             if (outputLabel) outputLabel.classList.remove('highlight');
           }
         });
+      });
 
-        cell.addEventListener('mouseup', async () => {
-          if (isDragging && dragStart) {
-            const dragEnd = {
-              output: parseInt(cell.dataset.output),
-              input: parseInt(cell.dataset.input)
-            };
+      // Minimap rendering and interaction
+      const minimap = document.getElementById('xyMinimap');
+      const minimapCanvas = document.getElementById('xyMinimapCanvas');
+      const minimapViewport = document.getElementById('xyMinimapViewport');
 
-            clearDragPreview();
-            xyGrid.classList.remove('dragging');
+      if (minimap && minimapCanvas && minimapViewport) {
+        function updateViewportIndicator() {
+          // Get the scrollable area dimensions
+          const scrollWidth = gridContainer.scrollWidth;
+          const scrollHeight = gridContainer.scrollHeight;
+          const clientWidth = gridContainer.clientWidth;
+          const clientHeight = gridContainer.clientHeight;
 
-            // Apply the routes
-            await applyDragRoutes(dragStart, dragEnd);
+          // Get current scroll position
+          const scrollLeft = gridContainer.scrollLeft;
+          const scrollTop = gridContainer.scrollTop;
 
-            dragStart = null;
-            isDragging = false;
+          // Calculate header offsets (sticky columns/rows)
+          const firstCrosspoint = xyGrid.querySelector('.crosspoint');
+          if (!firstCrosspoint) return;
+
+          const gridRect = xyGrid.getBoundingClientRect();
+          const crosspointRect = firstCrosspoint.getBoundingClientRect();
+          const headerWidth = crosspointRect.left - gridRect.left;
+          const headerHeight = crosspointRect.top - gridRect.top;
+
+          // Calculate the crosspoint area dimensions
+          const crosspointAreaWidth = scrollWidth - headerWidth;
+          const crosspointAreaHeight = scrollHeight - headerHeight;
+
+          // Minimap dimensions
+          const minimapRect = minimap.getBoundingClientRect();
+          const minimapWidth = minimapRect.width;
+          const minimapHeight = minimapRect.height;
+
+          // Calculate viewport box position and size
+          const visibleWidth = clientWidth - headerWidth;
+          const visibleHeight = clientHeight - headerHeight;
+
+          const vpLeft = (scrollLeft / crosspointAreaWidth) * minimapWidth;
+          const vpTop = (scrollTop / crosspointAreaHeight) * minimapHeight;
+          const vpWidth = (visibleWidth / crosspointAreaWidth) * minimapWidth;
+          const vpHeight = (visibleHeight / crosspointAreaHeight) * minimapHeight;
+
+          // Apply to viewport indicator
+          minimapViewport.style.left = Math.max(0, vpLeft) + 'px';
+          minimapViewport.style.top = Math.max(0, vpTop) + 'px';
+          minimapViewport.style.width = Math.min(vpWidth, minimapWidth - vpLeft) + 'px';
+          minimapViewport.style.height = Math.min(vpHeight, minimapHeight - vpTop) + 'px';
+
+          // Hide viewport if showing entire grid
+          const showViewport = vpWidth < minimapWidth * 0.95 || vpHeight < minimapHeight * 0.95;
+          minimapViewport.style.display = showViewport ? 'block' : 'none';
+        }
+
+        // Click on minimap to scroll
+        function scrollToMinimapPosition(clientX, clientY) {
+          const minimapRect = minimap.getBoundingClientRect();
+          const relX = (clientX - minimapRect.left) / minimapRect.width;
+          const relY = (clientY - minimapRect.top) / minimapRect.height;
+
+          // Calculate header offsets
+          const firstCrosspoint = xyGrid.querySelector('.crosspoint');
+          if (!firstCrosspoint) return;
+
+          const gridRect = xyGrid.getBoundingClientRect();
+          const crosspointRect = firstCrosspoint.getBoundingClientRect();
+          const headerWidth = crosspointRect.left - gridRect.left;
+          const headerHeight = crosspointRect.top - gridRect.top;
+
+          const crosspointAreaWidth = gridContainer.scrollWidth - headerWidth;
+          const crosspointAreaHeight = gridContainer.scrollHeight - headerHeight;
+
+          // Center the viewport on click position
+          const visibleWidth = gridContainer.clientWidth - headerWidth;
+          const visibleHeight = gridContainer.clientHeight - headerHeight;
+
+          const targetScrollLeft = (relX * crosspointAreaWidth) - (visibleWidth / 2);
+          const targetScrollTop = (relY * crosspointAreaHeight) - (visibleHeight / 2);
+
+          gridContainer.scrollLeft = Math.max(0, targetScrollLeft);
+          gridContainer.scrollTop = Math.max(0, targetScrollTop);
+        }
+
+        let minimapDragging = false;
+
+        minimap.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          minimapDragging = true;
+          scrollToMinimapPosition(e.clientX, e.clientY);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (minimapDragging) {
+            scrollToMinimapPosition(e.clientX, e.clientY);
           }
         });
-      });
 
-      // Handle mouse leaving the grid or releasing outside
-      xyGrid.addEventListener('mouseleave', () => {
-        if (isDragging) {
-          clearDragPreview();
-          xyGrid.classList.remove('dragging');
-          dragStart = null;
-          isDragging = false;
-        }
-      });
+        document.addEventListener('mouseup', () => {
+          minimapDragging = false;
+        });
 
-      document.addEventListener('mouseup', () => {
-        if (isDragging) {
-          clearDragPreview();
-          xyGrid.classList.remove('dragging');
-          dragStart = null;
-          isDragging = false;
-        }
-      });
+        // Update viewport on scroll
+        gridContainer.addEventListener('scroll', updateViewportIndicator);
+
+        // Initial render
+        updateMinimap();
+        setTimeout(updateViewportIndicator, 50);
+      }
     }
 
     function renderAll() {
@@ -2407,6 +2923,11 @@
         } else {
           state.routing[output] = input;
         }
+      }
+
+      // Update minimap if visible
+      if (xyActive) {
+        updateMinimap();
       }
     }
 
@@ -2978,7 +3499,7 @@
     });
 
     // Controller event listeners
-    window.videoHub.onRouterConnected((data) => {
+    window.videoHub.onRouterConnected(async (data) => {
       const host = document.getElementById('controllerHost').value;
       const port = document.getElementById('controllerPort').value;
       updateControllerStatus('connected', `Connected to ${host}:${port}`);
@@ -2988,6 +3509,15 @@
       if (data && data.state) {
         state = data.state;
         renderAll();
+
+        // Add to router history
+        const routerName = data.state.friendlyName || '';
+        await window.videoHub.addRouterToHistory({
+          host,
+          port: parseInt(port),
+          protocol: currentProtocol,
+          name: routerName
+        });
       }
     });
 

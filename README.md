@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.1.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.2.0)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.1.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.1/Router.Protocol.Simulator-2.1.1-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.1/Router.Protocol.Simulator.Setup.2.1.1.exe) |
-| Windows Portable | [Router Protocol Simulator 2.1.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.1.1/Router.Protocol.Simulator.2.1.1.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.2.0-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.0/Router.Protocol.Simulator-2.2.0-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.2.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.0/Router.Protocol.Simulator.Setup.2.2.0.exe) |
+| Windows Portable | [Router Protocol Simulator 2.2.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.0/Router.Protocol.Simulator.2.2.0.exe) |
 
 ## Features
 
@@ -217,6 +217,14 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Some clients may require specifying matrix/level 0
 
 ## Changelog
+
+### v2.2.0
+- XY Grid: Minimap overview in top-left corner showing entire matrix with viewport indicator
+- XY Grid: Click/drag minimap to navigate large routers quickly
+- XY Grid: Separate row/column for input and output index numbers
+- XY Grid: Auto-scroll when dragging crosspoints near viewport edges
+- Controller: Router connection history dropdown with recent routers
+- Controller: Saves router name, address, port, and protocol for quick reconnection
 
 ### v2.1.1
 - Added About panel with Video Walrus Ltd branding and copyright
