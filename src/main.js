@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const VideoHubServer = require('./videohub-server');
@@ -86,6 +86,65 @@ function sendToRenderer(channel, ...args) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, ...args);
   }
+}
+
+// Check for updates against GitHub releases
+async function checkForUpdates() {
+  try {
+    const https = require('https');
+    const currentVersion = app.getVersion();
+
+    return new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.github.com',
+        path: '/repos/videojedi/VideoHubSim/releases/latest',
+        headers: {
+          'User-Agent': 'Router-Protocol-Simulator'
+        }
+      };
+
+      https.get(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const release = JSON.parse(data);
+            const latestVersion = release.tag_name.replace(/^v/, '');
+            const releaseUrl = release.html_url;
+
+            // Compare versions
+            const isNewer = compareVersions(latestVersion, currentVersion) > 0;
+
+            resolve({
+              currentVersion,
+              latestVersion,
+              updateAvailable: isNewer,
+              releaseUrl,
+              releaseName: release.name || `v${latestVersion}`
+            });
+          } catch (e) {
+            reject(new Error('Failed to parse release data'));
+          }
+        });
+      }).on('error', reject);
+    });
+  } catch (error) {
+    throw new Error(`Update check failed: ${error.message}`);
+  }
+}
+
+// Compare semantic versions: returns 1 if a > b, -1 if a < b, 0 if equal
+function compareVersions(a, b) {
+  const partsA = a.split('.').map(Number);
+  const partsB = b.split('.').map(Number);
+
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    const numA = partsA[i] || 0;
+    const numB = partsB[i] || 0;
+    if (numA > numB) return 1;
+    if (numA < numB) return -1;
+  }
+  return 0;
 }
 
 function createWindow() {
@@ -449,6 +508,25 @@ function setupIpcHandlers() {
     settings.autoStart = enabled;
     saveSettings();
     return { success: true };
+  });
+
+  // Update checker
+  ipcMain.handle('check-for-updates', async () => {
+    try {
+      const result = await checkForUpdates();
+      return { success: true, ...result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('open-external', async (event, url) => {
+    // Only allow opening GitHub URLs for security
+    if (url.startsWith('https://github.com/')) {
+      await shell.openExternal(url);
+      return { success: true };
+    }
+    return { success: false, error: 'Invalid URL' };
   });
 
   // Router history management

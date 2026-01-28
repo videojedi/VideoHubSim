@@ -107,6 +107,47 @@
       cursor: not-allowed;
     }
 
+    /* Update notification */
+    .update-banner {
+      display: none;
+      background: linear-gradient(90deg, #2ed573, #1e90ff);
+      color: #fff;
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.85rem;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .update-banner.visible {
+      display: flex;
+    }
+
+    .update-banner a {
+      color: #fff;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .update-banner a:hover {
+      text-decoration: none;
+    }
+
+    .update-banner .dismiss-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    .update-banner .dismiss-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     /* Main content */
     .main-content {
       display: flex;
@@ -1253,6 +1294,11 @@
 </head>
 <body>
   <div class="app-container">
+    <div class="update-banner" id="updateBanner">
+      <span id="updateMessage">A new version is available!</span>
+      <a href="#" id="updateLink" target="_blank">Download</a>
+      <button class="dismiss-btn" id="dismissUpdate">Dismiss</button>
+    </div>
     <header class="header">
       <h1 id="appTitle">Router Protocol Simulator</h1>
       <div class="header-controls">
@@ -1651,6 +1697,37 @@
       }
     };
 
+
+    // Update checker
+    const updateBanner = document.getElementById('updateBanner');
+    const updateMessage = document.getElementById('updateMessage');
+    const updateLink = document.getElementById('updateLink');
+    const dismissUpdate = document.getElementById('dismissUpdate');
+
+    async function checkForUpdates() {
+      try {
+        const result = await window.videoHub.checkForUpdates();
+        if (result.success && result.updateAvailable) {
+          updateMessage.textContent = `Version ${result.latestVersion} is available! (You have ${result.currentVersion})`;
+          updateLink.href = result.releaseUrl;
+          updateLink.textContent = `Download ${result.releaseName}`;
+          updateBanner.classList.add('visible');
+          log(`Update available: ${result.latestVersion} (current: ${result.currentVersion})`, 'info');
+        }
+      } catch (error) {
+        // Silently fail - don't bother user if update check fails
+        console.log('Update check failed:', error);
+      }
+    }
+
+    dismissUpdate.addEventListener('click', () => {
+      updateBanner.classList.remove('visible');
+    });
+
+    updateLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.videoHub.openExternal(updateLink.href);
+    });
 
     // Logging
     function log(message, type = 'info') {
@@ -3633,6 +3710,9 @@
       if (document.getElementById('autoConnect').checked && !isConnected) {
         connectBtn.click();
       }
+
+      // Check for updates (after a short delay to not block startup)
+      setTimeout(checkForUpdates, 2000);
     }
 
     // Auto-start checkbox handler
