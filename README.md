@@ -12,6 +12,20 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 | Windows Installer | [Router Protocol Simulator Setup 2.2.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.1/Router.Protocol.Simulator.Setup.2.2.1.exe) |
 | Windows Portable | [Router Protocol Simulator 2.2.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.1/Router.Protocol.Simulator.2.2.1.exe) |
 
+## Screenshots
+
+### Routing Matrix
+![Routing Matrix](screenshots/routing-matrix.png)
+
+### XY Crosspoint Grid with Minimap
+![XY Grid with Minimap](screenshots/xy-grid-minimap.png)
+
+### Labels with Context Menu
+![Labels Context Menu](screenshots/labels-context-menu.png)
+
+### Router Connection History
+![Router History](screenshots/router-history.png)
+
 ## Features
 
 - **Multiple Protocol Support** - Switch between VideoHub, SW-P-08, and GV Native protocols
@@ -218,6 +232,9 @@ Ensure the server is started (green status indicator) before connecting clients.
 
 ## Changelog
 
+### v2.2.1
+- Auto-update notification: checks GitHub releases on startup and shows banner when new version available
+
 ### v2.2.0
 - XY Grid: Minimap overview in top-left corner showing entire matrix with viewport indicator
 - XY Grid: Click/drag minimap to navigate large routers quickly
@@ -225,9 +242,6 @@ Ensure the server is started (green status indicator) before connecting clients.
 - XY Grid: Auto-scroll when dragging crosspoints near viewport edges
 - Controller: Router connection history dropdown with recent routers
 - Controller: Saves router name, address, port, and protocol for quick reconnection
-
-### v2.2.1
-- Auto-update notification: checks GitHub releases on startup and shows banner when new version available
 
 ### v2.1.1
 - Added About panel with Video Walrus Ltd branding and copyright
