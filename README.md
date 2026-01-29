@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.2.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.2.2)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.2.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.1/Router.Protocol.Simulator-2.2.1-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.2.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.1/Router.Protocol.Simulator.Setup.2.2.1.exe) |
-| Windows Portable | [Router Protocol Simulator 2.2.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.1/Router.Protocol.Simulator.2.2.1.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.2.2-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.2/Router.Protocol.Simulator-2.2.2-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.2.2.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.2/Router.Protocol.Simulator.Setup.2.2.2.exe) |
+| Windows Portable | [Router Protocol Simulator 2.2.2.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.2/Router.Protocol.Simulator.2.2.2.exe) |
 
 ## Screenshots
 
@@ -231,6 +231,10 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Some clients may require specifying matrix/level 0
 
 ## Changelog
+
+### v2.2.2
+- Fill and Increment now supports letter sequences (e.g., "VTR A" → "VTR B" → "VTR C")
+- Tab key cycles vertically through label fields with wrap-around
 
 ### v2.2.1
 - Auto-update notification: checks GitHub releases on startup and shows banner when new version available

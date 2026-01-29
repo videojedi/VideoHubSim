@@ -1997,7 +1997,26 @@
       const index = parseInt(input.dataset.index);
       const max = type === 'input' ? state.inputs : state.outputs;
 
-      if (e.key === 'ArrowDown' && !e.shiftKey) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Shift+Tab: go up in the same column, wrap to bottom if at top
+          if (index > 0) {
+            focusLabelInput(type, index - 1);
+          } else {
+            // Wrap to bottom of list
+            focusLabelInput(type, max - 1);
+          }
+        } else {
+          // Tab: go down in the same column, wrap to top if at bottom
+          if (index < max - 1) {
+            focusLabelInput(type, index + 1);
+          } else {
+            // Wrap to top of list
+            focusLabelInput(type, 0);
+          }
+        }
+      } else if (e.key === 'ArrowDown' && !e.shiftKey) {
         e.preventDefault();
         focusLabelInput(type, Math.min(index + 1, max - 1));
       } else if (e.key === 'ArrowUp' && !e.shiftKey) {
@@ -2273,11 +2292,55 @@
     function generateIncrementedLabels(baseLabel, count) {
       const labels = [baseLabel];
 
-      // Find the last number in the label to increment
+      // Try to find a pattern to increment (check in order of preference)
+
+      // 1. Check for trailing letter sequence (e.g., "VTR A", "CAM B", "Input X")
+      const letterMatch = baseLabel.match(/^(.+?)([A-Z])$/i);
+      if (letterMatch) {
+        const prefix = letterMatch[1];
+        const letter = letterMatch[2];
+        const isUpperCase = letter === letter.toUpperCase();
+        const startCode = letter.toUpperCase().charCodeAt(0);
+
+        for (let i = 1; i < count; i++) {
+          const newCode = startCode + i;
+          // Wrap around after Z (or stop if needed)
+          if (newCode > 90) { // 'Z' is 90
+            // Wrap to A or just use the last valid letter
+            const wrappedCode = ((newCode - 65) % 26) + 65;
+            const newLetter = String.fromCharCode(wrappedCode);
+            labels.push(prefix + (isUpperCase ? newLetter : newLetter.toLowerCase()));
+          } else {
+            const newLetter = String.fromCharCode(newCode);
+            labels.push(prefix + (isUpperCase ? newLetter : newLetter.toLowerCase()));
+          }
+        }
+        return labels;
+      }
+
+      // 2. Check for letter followed by space/separator at end (e.g., "Deck A ", "VTR-B")
+      const letterWithSepMatch = baseLabel.match(/^(.+[^A-Za-z])([A-Z])(\s*)$/i);
+      if (letterWithSepMatch) {
+        const prefix = letterWithSepMatch[1];
+        const letter = letterWithSepMatch[2];
+        const suffix = letterWithSepMatch[3];
+        const isUpperCase = letter === letter.toUpperCase();
+        const startCode = letter.toUpperCase().charCodeAt(0);
+
+        for (let i = 1; i < count; i++) {
+          const newCode = startCode + i;
+          const wrappedCode = newCode > 90 ? ((newCode - 65) % 26) + 65 : newCode;
+          const newLetter = String.fromCharCode(wrappedCode);
+          labels.push(prefix + (isUpperCase ? newLetter : newLetter.toLowerCase()) + suffix);
+        }
+        return labels;
+      }
+
+      // 3. Find the last number in the label to increment (original behavior)
       const numberMatch = baseLabel.match(/(\d+)(?!.*\d)/);
 
       if (!numberMatch) {
-        // No number found, just duplicate the label
+        // No number or letter pattern found, just duplicate the label
         for (let i = 1; i < count; i++) {
           labels.push(baseLabel);
         }
