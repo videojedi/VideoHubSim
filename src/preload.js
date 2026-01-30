@@ -36,6 +36,13 @@ contextBridge.exposeInMainWorld('videoHub', {
   addRouterToHistory: (router) => ipcRenderer.invoke('add-router-to-history', router),
   removeRouterFromHistory: (index) => ipcRenderer.invoke('remove-router-from-history', index),
 
+  // Salvos
+  getSalvos: () => ipcRenderer.invoke('get-salvos'),
+  saveSalvo: (salvo) => ipcRenderer.invoke('save-salvo', salvo),
+  deleteSalvo: (salvoId) => ipcRenderer.invoke('delete-salvo', salvoId),
+  recallSalvo: (salvoId, target) => ipcRenderer.invoke('recall-salvo', salvoId, target),
+  captureSalvo: (name, selectedOutputs, target, level) => ipcRenderer.invoke('capture-salvo', name, selectedOutputs, target, level),
+
   // Update checker
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),

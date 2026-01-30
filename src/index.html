@@ -862,6 +862,318 @@
       background: rgba(255, 255, 255, 0.3);
     }
 
+    /* Salvo Panel */
+    #salvosPanel.labels-panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .salvos-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .salvos-toolbar .btn-small {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .salvos-toolbar .separator {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 0 5px;
+    }
+
+    .salvos-toolbar .selection-count {
+      font-size: 0.85rem;
+      color: #74b9ff;
+      margin-left: auto;
+    }
+
+    .salvo-name-input {
+      padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 0.85rem;
+      width: 200px;
+    }
+
+    .salvo-name-input:focus {
+      outline: none;
+      border-color: #4a69bd;
+    }
+
+    .salvos-columns {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .salvos-destinations-column {
+      width: 280px;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .salvos-list-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .salvos-column-header {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #4a69bd;
+      margin: 0 0 10px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(74, 105, 189, 0.3);
+    }
+
+    .salvo-level-selector {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .salvo-level-selector.visible {
+      display: flex;
+    }
+
+    .salvo-level-selector label {
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    .salvo-level-selector select {
+      padding: 5px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #fff;
+      font-size: 0.8rem;
+    }
+
+    .salvos-destinations-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .salvos-destinations-toolbar .btn-small {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+    }
+
+    .salvos-destinations-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .salvo-dest-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .salvo-dest-row:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .salvo-dest-row.selected {
+      background: rgba(74, 105, 189, 0.3);
+    }
+
+    .salvo-dest-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .salvo-dest-row .dest-number {
+      width: 30px;
+      font-size: 0.8rem;
+      color: #666;
+      text-align: right;
+    }
+
+    .salvo-dest-row .dest-label {
+      flex: 1;
+      font-size: 0.85rem;
+      color: #ff6b6b;
+    }
+
+    .salvo-dest-row .dest-source {
+      font-size: 0.8rem;
+      color: #2ed573;
+    }
+
+    /* XY Panel Salvos Bar */
+    .xy-salvos-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .xy-salvos-bar.visible {
+      display: flex;
+    }
+
+    .xy-salvos-bar .salvos-label {
+      font-size: 0.8rem;
+      color: #888;
+      margin-right: 5px;
+    }
+
+    .xy-salvos-bar .salvo-recall-btn {
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      background: rgba(74, 105, 189, 0.3);
+      border: 1px solid rgba(74, 105, 189, 0.5);
+      border-radius: 4px;
+      color: #74b9ff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .xy-salvos-bar .salvo-recall-btn:hover {
+      background: rgba(74, 105, 189, 0.5);
+      border-color: #74b9ff;
+    }
+
+    .salvos-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .salvo-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background 0.2s;
+    }
+
+    .salvo-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .salvo-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .salvo-card-header .salvo-name {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #fff;
+      flex: 1;
+    }
+
+    .salvo-card-header .salvo-meta {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    .salvo-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .salvo-card-actions .btn {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .salvo-routes-summary {
+      font-size: 0.8rem;
+      color: #888;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .salvo-route-chip {
+      background: rgba(74, 105, 189, 0.2);
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #74b9ff;
+    }
+
+    .salvo-route-chip.expanded {
+      background: rgba(46, 213, 115, 0.15);
+      color: #2ed573;
+    }
+
+    .salvo-empty {
+      text-align: center;
+      color: #666;
+      padding: 40px;
+      font-size: 0.9rem;
+    }
+
+    .salvo-empty p {
+      margin-bottom: 10px;
+    }
+
+    .capture-mode-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(255, 165, 0, 0.2);
+      border: 1px solid rgba(255, 165, 0, 0.5);
+      border-radius: 4px;
+      color: #ffa502;
+      font-size: 0.85rem;
+    }
+
+    .capture-mode-indicator.visible {
+      display: flex;
+    }
+
+    .capture-mode-indicator .selection-count {
+      font-weight: 600;
+    }
+
     /* XY Grid */
     .xy-grid-container {
       overflow: auto;
@@ -1448,6 +1760,7 @@
           <button class="tab active" data-tab="routing">Routing Matrix</button>
           <button class="tab" data-tab="xy">XY</button>
           <button class="tab" data-tab="labels">Labels</button>
+          <button class="tab" data-tab="salvos">Salvos</button>
         </div>
 
         <div id="routingPanel" class="matrix-container">
@@ -1497,10 +1810,51 @@
             <select id="xyLevelSelect"></select>
             <span class="level-indicator" id="xyLevelIndicator">Level 1: Video</span>
           </div>
+          <div class="xy-salvos-bar" id="xySalvosBar">
+            <!-- Salvo recall buttons will be generated here -->
+          </div>
           <div class="xy-grid-container">
             <table class="xy-grid" id="xyGrid">
               <!-- XY grid will be generated here -->
             </table>
+          </div>
+        </div>
+
+        <div id="salvosPanel" class="labels-panel">
+          <div class="salvos-toolbar">
+            <input type="text" class="salvo-name-input" id="salvoNameInput" placeholder="Salvo name...">
+            <div class="salvo-level-selector" id="salvoLevelSelector">
+              <label>Level:</label>
+              <select id="salvoLevelSelect">
+                <option value="all">All Levels</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-small" id="captureAllBtn">Capture All</button>
+            <button class="btn btn-primary btn-small" id="captureSelectedBtn" disabled>Capture Selected</button>
+            <div class="separator"></div>
+            <span class="selection-count" id="salvoSelectionCount"></span>
+            <button class="btn btn-small" id="clearSelectionBtn" style="display: none;">Clear</button>
+          </div>
+          <div class="salvos-columns">
+            <div class="salvos-destinations-column">
+              <h3 class="salvos-column-header">Select Destinations</h3>
+              <div class="salvos-destinations-toolbar">
+                <button class="btn btn-small" id="selectAllDestsBtn">Select All</button>
+                <button class="btn btn-small" id="selectNoneDestsBtn">Select None</button>
+              </div>
+              <div class="salvos-destinations-list" id="salvosDestinationsList">
+                <!-- Destination checkboxes will be generated here -->
+              </div>
+            </div>
+            <div class="salvos-list-column">
+              <h3 class="salvos-column-header">Saved Salvos</h3>
+              <div class="salvos-list" id="salvosList">
+                <div class="salvo-empty" id="salvosEmpty">
+                  <p>No salvos saved yet.</p>
+                  <p>Select destinations and click Capture to save current routing.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -2587,6 +2941,9 @@
       const xyLevelSelect = document.getElementById('xyLevelSelect');
       const xyLevelIndicator = document.getElementById('xyLevelIndicator');
 
+      // Render salvos bar
+      renderXYSalvosBar();
+
       // Show level selector for multi-level protocols
       const showLevels = (currentProtocol === 'swp08' || currentProtocol === 'gvnative') && state.levels > 1;
       xyLevelSelector.classList.toggle('visible', showLevels);
@@ -3268,8 +3625,13 @@
         document.getElementById('routingPanel').style.display = tabName === 'routing' ? 'block' : 'none';
         document.getElementById('labelsPanel').classList.toggle('active', tabName === 'labels');
         document.getElementById('xyPanel').classList.toggle('active', tabName === 'xy');
+        document.getElementById('salvosPanel').classList.toggle('active', tabName === 'salvos');
         if (tabName === 'xy') {
           renderXYGrid();
+        }
+        if (tabName === 'salvos') {
+          renderSalvosList();
+          renderSalvoDestinations();
         }
       });
     });
@@ -3683,6 +4045,347 @@
       updateControllerStatus('reconnecting', `Reconnecting (attempt ${attempt})...`);
     });
 
+    // ==================== SALVOS ====================
+    let salvos = [];
+    let selectedOutputsForCapture = new Set();
+    let selectedSalvoLevel = 'all'; // 'all' or specific level number
+
+    async function loadSalvos() {
+      salvos = await window.videoHub.getSalvos();
+      renderSalvosList();
+      renderSalvoDestinations();
+    }
+
+    function updateSalvoLevelSelector() {
+      const selector = document.getElementById('salvoLevelSelector');
+      const select = document.getElementById('salvoLevelSelect');
+
+      const isMultiLevel = (currentProtocol === 'swp08' || currentProtocol === 'gvnative') && state.levels > 1;
+
+      if (!isMultiLevel) {
+        selector.classList.remove('visible');
+        selectedSalvoLevel = 'all';
+        return;
+      }
+
+      selector.classList.add('visible');
+
+      // Preserve current selection if valid
+      const currentValue = select.value;
+
+      select.innerHTML = '<option value="all">All Levels</option>';
+      for (let l = 0; l < state.levels; l++) {
+        const option = document.createElement('option');
+        option.value = l;
+        option.textContent = state.levelNames?.[l] || `Level ${l + 1}`;
+        select.appendChild(option);
+      }
+
+      // Restore selection if still valid
+      if (currentValue === 'all' || parseInt(currentValue) < state.levels) {
+        select.value = currentValue;
+      } else {
+        select.value = 'all';
+      }
+      selectedSalvoLevel = select.value;
+    }
+
+    function renderSalvoDestinations() {
+      const destList = document.getElementById('salvosDestinationsList');
+      if (!destList) return;
+
+      // Update level selector visibility and options
+      updateSalvoLevelSelector();
+
+      destList.innerHTML = '';
+      const routing = getCurrentRouting();
+
+      for (let o = 0; o < state.outputs; o++) {
+        const row = document.createElement('div');
+        row.className = 'salvo-dest-row' + (selectedOutputsForCapture.has(o) ? ' selected' : '');
+        row.dataset.output = o;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selectedOutputsForCapture.has(o);
+        checkbox.addEventListener('change', (e) => {
+          e.stopPropagation();
+          toggleDestinationSelection(o);
+        });
+
+        const num = document.createElement('span');
+        num.className = 'dest-number';
+        num.textContent = o + 1;
+
+        const label = document.createElement('span');
+        label.className = 'dest-label';
+        label.textContent = state.outputLabels[o] || `Output ${o + 1}`;
+
+        const source = document.createElement('span');
+        source.className = 'dest-source';
+        const inputIdx = routing[o];
+        source.textContent = '← ' + (state.inputLabels[inputIdx] || `Input ${inputIdx + 1}`);
+
+        row.appendChild(checkbox);
+        row.appendChild(num);
+        row.appendChild(label);
+        row.appendChild(source);
+
+        row.addEventListener('click', (e) => {
+          if (e.target.tagName !== 'INPUT') {
+            toggleDestinationSelection(o);
+          }
+        });
+
+        destList.appendChild(row);
+      }
+    }
+
+    function toggleDestinationSelection(output) {
+      if (selectedOutputsForCapture.has(output)) {
+        selectedOutputsForCapture.delete(output);
+      } else {
+        selectedOutputsForCapture.add(output);
+      }
+      updateCaptureSelectionUI();
+      updateDestinationRowUI(output);
+    }
+
+    function updateDestinationRowUI(output) {
+      const row = document.querySelector(`.salvo-dest-row[data-output="${output}"]`);
+      if (row) {
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        const isSelected = selectedOutputsForCapture.has(output);
+        row.classList.toggle('selected', isSelected);
+        if (checkbox) checkbox.checked = isSelected;
+      }
+    }
+
+    function renderXYSalvosBar() {
+      const bar = document.getElementById('xySalvosBar');
+      if (!bar) return;
+
+      bar.innerHTML = '';
+
+      if (!salvos || salvos.length === 0) {
+        bar.classList.remove('visible');
+        return;
+      }
+
+      bar.classList.add('visible');
+
+      const label = document.createElement('span');
+      label.className = 'salvos-label';
+      label.textContent = 'Salvos:';
+      bar.appendChild(label);
+
+      salvos.forEach(salvo => {
+        const btn = document.createElement('button');
+        btn.className = 'salvo-recall-btn';
+        btn.textContent = salvo.name;
+        btn.title = `Recall ${salvo.routes?.length || 0} routes`;
+        btn.addEventListener('click', () => recallSalvo(salvo.id));
+        bar.appendChild(btn);
+      });
+    }
+
+    function renderSalvosList() {
+      const salvosList = document.getElementById('salvosList');
+      const salvosEmpty = document.getElementById('salvosEmpty');
+
+      // Remove existing salvo cards (but keep the empty message element)
+      const existingCards = salvosList.querySelectorAll('.salvo-card');
+      existingCards.forEach(card => card.remove());
+
+      if (!salvos || salvos.length === 0) {
+        salvosEmpty.style.display = 'block';
+        return;
+      }
+
+      salvosEmpty.style.display = 'none';
+
+      salvos.forEach(salvo => {
+        const card = document.createElement('div');
+        card.className = 'salvo-card';
+        card.dataset.salvoId = salvo.id;
+
+        const header = document.createElement('div');
+        header.className = 'salvo-card-header';
+
+        const name = document.createElement('span');
+        name.className = 'salvo-name';
+        name.textContent = salvo.name;
+
+        const meta = document.createElement('span');
+        meta.className = 'salvo-meta';
+        const routeCount = salvo.routes ? salvo.routes.length : 0;
+        const date = new Date(salvo.createdAt).toLocaleDateString();
+        meta.textContent = `${routeCount} routes | ${date}`;
+
+        header.appendChild(name);
+        header.appendChild(meta);
+
+        const routesSummary = document.createElement('div');
+        routesSummary.className = 'salvo-routes-summary';
+
+        const maxChips = 6;
+        const routes = salvo.routes || [];
+        routes.slice(0, maxChips).forEach(route => {
+          const chip = document.createElement('span');
+          chip.className = 'salvo-route-chip';
+          chip.textContent = `${route.outputLabel || `Out ${route.output + 1}`} ← ${route.inputLabel || `In ${route.input + 1}`}`;
+          routesSummary.appendChild(chip);
+        });
+
+        if (routes.length > maxChips) {
+          const moreChip = document.createElement('span');
+          moreChip.className = 'salvo-route-chip';
+          moreChip.textContent = `+${routes.length - maxChips} more`;
+          routesSummary.appendChild(moreChip);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'salvo-card-actions';
+
+        const recallBtn = document.createElement('button');
+        recallBtn.className = 'btn btn-primary';
+        recallBtn.textContent = 'Recall';
+        recallBtn.addEventListener('click', () => recallSalvo(salvo.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-danger';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', () => deleteSalvo(salvo.id));
+
+        actions.appendChild(recallBtn);
+        actions.appendChild(deleteBtn);
+
+        card.appendChild(header);
+        card.appendChild(routesSummary);
+        card.appendChild(actions);
+        salvosList.appendChild(card);
+      });
+    }
+
+    async function captureSalvo(selectedOutputs = null) {
+      const nameInput = document.getElementById('salvoNameInput');
+      const name = nameInput.value.trim() || `Salvo ${salvos.length + 1}`;
+
+      // Get selected level (for multi-level protocols)
+      const level = selectedSalvoLevel === 'all' ? null : parseInt(selectedSalvoLevel);
+
+      const result = await window.videoHub.captureSalvo(name, selectedOutputs, currentView, level);
+
+      if (result.success) {
+        salvos = result.salvos;
+        renderSalvosList();
+        renderXYSalvosBar();
+        nameInput.value = '';
+        selectedOutputsForCapture.clear();
+        updateCaptureSelectionUI();
+        renderSalvoDestinations();
+        log(`Salvo "${result.salvo.name}" captured with ${result.salvo.routes.length} routes`, 'success');
+      } else {
+        log(`Failed to capture salvo: ${result.error}`, 'error');
+      }
+    }
+
+    async function recallSalvo(salvoId) {
+      const salvo = salvos.find(s => s.id === salvoId);
+      if (!salvo) return;
+
+      const result = await window.videoHub.recallSalvo(salvoId, currentView);
+
+      if (result.success) {
+        log(`Salvo "${salvo.name}" recalled - ${result.appliedCount} routes applied`, 'success');
+      } else {
+        log(`Salvo recall had errors: ${result.errors?.join(', ') || 'Unknown error'}`, 'warning');
+      }
+    }
+
+    async function deleteSalvo(salvoId) {
+      // Refresh salvos from backend to ensure we have current state
+      salvos = await window.videoHub.getSalvos();
+      const salvo = salvos.find(s => s.id === salvoId);
+
+      if (!salvo) {
+        log(`Salvo not found`, 'error');
+        renderSalvosList();
+        renderXYSalvosBar();
+        return;
+      }
+
+      if (!confirm(`Delete "${salvo.name}"?`)) return;
+
+      try {
+        const result = await window.videoHub.deleteSalvo(salvoId);
+
+        if (result.success) {
+          salvos = result.salvos;
+          renderSalvosList();
+          renderXYSalvosBar();
+          log(`Salvo "${salvo.name}" deleted`, 'info');
+        } else {
+          log(`Failed to delete salvo: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        log(`Failed to delete salvo: ${err.message}`, 'error');
+      }
+    }
+
+    function updateCaptureSelectionUI() {
+      const countSpan = document.getElementById('salvoSelectionCount');
+      const captureSelectedBtn = document.getElementById('captureSelectedBtn');
+      const clearBtn = document.getElementById('clearSelectionBtn');
+
+      const count = selectedOutputsForCapture.size;
+
+      if (count > 0) {
+        countSpan.textContent = `${count} destination${count > 1 ? 's' : ''} selected`;
+        captureSelectedBtn.disabled = false;
+        clearBtn.style.display = 'inline-block';
+      } else {
+        countSpan.textContent = '';
+        captureSelectedBtn.disabled = true;
+        clearBtn.style.display = 'none';
+      }
+    }
+
+    // Salvo button handlers
+    document.getElementById('captureAllBtn').addEventListener('click', () => {
+      captureSalvo(null);
+    });
+
+    document.getElementById('captureSelectedBtn').addEventListener('click', () => {
+      if (selectedOutputsForCapture.size > 0) {
+        captureSalvo(Array.from(selectedOutputsForCapture));
+      }
+    });
+
+    document.getElementById('selectAllDestsBtn').addEventListener('click', () => {
+      for (let o = 0; o < state.outputs; o++) {
+        selectedOutputsForCapture.add(o);
+      }
+      updateCaptureSelectionUI();
+      renderSalvoDestinations();
+    });
+
+    document.getElementById('selectNoneDestsBtn').addEventListener('click', () => {
+      selectedOutputsForCapture.clear();
+      updateCaptureSelectionUI();
+      renderSalvoDestinations();
+    });
+
+    document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+      selectedOutputsForCapture.clear();
+      updateCaptureSelectionUI();
+      renderSalvoDestinations();
+    });
+
+    document.getElementById('salvoLevelSelect').addEventListener('change', (e) => {
+      selectedSalvoLevel = e.target.value;
+    });
+
     // Initialize
     async function init() {
       // Load saved settings
@@ -3767,6 +4470,10 @@
       }
       appTitle.textContent = currentView === 'simulator' ? getSimulatorTitle() : getControllerTitle();
       renderAll();
+
+      // Load salvos
+      await loadSalvos();
+
       log('Router Protocol Simulator initialized', 'success');
 
       // Auto-connect controller if enabled

@@ -57,7 +57,9 @@ function loadSettings() {
     autoReconnect: true,
     autoConnect: false,
     // Router connection history
-    routerHistory: []
+    routerHistory: [],
+    // Salvos - captured routing states
+    salvos: []
   };
   return settings;
 }
@@ -649,6 +651,152 @@ function setupIpcHandlers() {
 
   ipcMain.handle('is-controller-connected', () => {
     return controllerInstance?.isConnected() || false;
+  });
+
+  // Salvo management
+  ipcMain.handle('get-salvos', () => {
+    return settings.salvos || [];
+  });
+
+  ipcMain.handle('save-salvo', (event, salvo) => {
+    if (!settings.salvos) settings.salvos = [];
+
+    // Generate unique ID if not provided
+    if (!salvo.id) {
+      salvo.id = `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    salvo.createdAt = salvo.createdAt || new Date().toISOString();
+    salvo.updatedAt = new Date().toISOString();
+
+    // Check if updating existing salvo
+    const existingIndex = settings.salvos.findIndex(s => s.id === salvo.id);
+    if (existingIndex >= 0) {
+      settings.salvos[existingIndex] = salvo;
+    } else {
+      settings.salvos.push(salvo);
+    }
+
+    saveSettings();
+    return { success: true, salvo, salvos: settings.salvos };
+  });
+
+  ipcMain.handle('delete-salvo', (event, salvoId) => {
+    if (!settings.salvos) return { success: false, error: 'No salvos found' };
+
+    const index = settings.salvos.findIndex(s => s.id === salvoId);
+    if (index < 0) return { success: false, error: 'Salvo not found' };
+
+    settings.salvos.splice(index, 1);
+    saveSettings();
+    return { success: true, salvos: settings.salvos };
+  });
+
+  ipcMain.handle('recall-salvo', async (event, salvoId, target) => {
+    if (!settings.salvos) return { success: false, error: 'No salvos found' };
+
+    const salvo = settings.salvos.find(s => s.id === salvoId);
+    if (!salvo) return { success: false, error: 'Salvo not found' };
+
+    const instance = (target === 'controller' && controllerInstance && controllerInstance.isConnected())
+      ? controllerInstance
+      : routerServer;
+
+    const errors = [];
+
+    // Apply routing changes
+    if (salvo.routes) {
+      for (const route of salvo.routes) {
+        try {
+          const level = route.level || 0;
+          await instance.setRoute(route.output, route.input, level);
+        } catch (err) {
+          errors.push(`Route ${route.output}->${route.input}: ${err.message}`);
+        }
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      errors: errors.length > 0 ? errors : undefined,
+      appliedCount: salvo.routes ? salvo.routes.length - errors.length : 0
+    };
+  });
+
+  ipcMain.handle('capture-salvo', (event, name, selectedOutputs, target, selectedLevel) => {
+    try {
+      const instance = (target === 'controller' && controllerInstance && controllerInstance.isConnected())
+        ? controllerInstance
+        : routerServer;
+
+      const state = instance.getState();
+      const routes = [];
+
+      // Determine which outputs to capture
+      const outputsToCapture = selectedOutputs && selectedOutputs.length > 0
+        ? selectedOutputs
+        : Array.from({ length: state.outputs }, (_, i) => i);
+
+      // For multi-level protocols, capture specified level(s)
+      const isMultiLevel = currentProtocol === 'swp08' || currentProtocol === 'gvnative';
+
+      if (isMultiLevel && state.allRouting) {
+        // If a specific level is selected, only capture that level
+        // Otherwise capture all levels
+        const levelsToCapture = selectedLevel !== null && selectedLevel !== undefined
+          ? [selectedLevel]
+          : Object.keys(state.allRouting).map(l => parseInt(l));
+
+        for (const level of levelsToCapture) {
+          const levelRouting = state.allRouting[level];
+          if (!levelRouting) continue;
+
+          for (const output of outputsToCapture) {
+            if (levelRouting[output] !== undefined) {
+              routes.push({
+                output: parseInt(output),
+                input: levelRouting[output],
+                level: parseInt(level),
+                outputLabel: state.outputLabels[output] || `Output ${parseInt(output) + 1}`,
+                inputLabel: state.inputLabels[levelRouting[output]] || `Input ${levelRouting[output] + 1}`,
+                levelName: state.levelNames?.[level] || `Level ${parseInt(level) + 1}`
+              });
+            }
+          }
+        }
+      } else {
+        for (const output of outputsToCapture) {
+          if (state.routing[output] !== undefined) {
+            routes.push({
+              output: parseInt(output),
+              input: state.routing[output],
+              level: 0,
+              outputLabel: state.outputLabels[output] || `Output ${parseInt(output) + 1}`,
+              inputLabel: state.inputLabels[state.routing[output]] || `Input ${state.routing[output] + 1}`
+            });
+          }
+        }
+      }
+
+      const salvo = {
+        id: `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: name || `Salvo ${(settings.salvos?.length || 0) + 1}`,
+        routes,
+        protocol: currentProtocol,
+        source: target,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Save the salvo
+      if (!settings.salvos) settings.salvos = [];
+      settings.salvos.push(salvo);
+      saveSettings();
+
+      return { success: true, salvo, salvos: settings.salvos };
+    } catch (err) {
+      console.error('Error capturing salvo:', err);
+      return { success: false, error: err.message };
+    }
   });
 }
 
