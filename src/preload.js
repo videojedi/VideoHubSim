@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('videoHub', {
   switchProtocol: (protocol) => ipcRenderer.invoke('switch-protocol', protocol),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
+  setAutoConnect: (enabled) => ipcRenderer.invoke('set-auto-connect', enabled),
+  setAutoReconnect: (enabled) => ipcRenderer.invoke('set-auto-reconnect', enabled),
 
   // Router history
   getRouterHistory: () => ipcRenderer.invoke('get-router-history'),

@@ -512,6 +512,18 @@ function setupIpcHandlers() {
     return { success: true };
   });
 
+  ipcMain.handle('set-auto-connect', (event, enabled) => {
+    settings.autoConnect = enabled;
+    saveSettings();
+    return { success: true };
+  });
+
+  ipcMain.handle('set-auto-reconnect', (event, enabled) => {
+    settings.autoReconnect = enabled;
+    saveSettings();
+    return { success: true };
+  });
+
   // Update checker
   ipcMain.handle('check-for-updates', async () => {
     try {

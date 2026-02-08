@@ -4584,7 +4584,17 @@
 
       // Auto-connect controller if enabled
       if (document.getElementById('autoConnect').checked && !isConnected) {
-        connectBtn.click();
+        const tryAutoConnect = async () => {
+          // Wait for server to be ready if auto-start is also enabled
+          if (!isServerRunning && document.getElementById('autoStart').checked) {
+            for (let i = 0; i < 20; i++) {
+              await new Promise(r => setTimeout(r, 250));
+              if (await window.videoHub.isServerRunning()) break;
+            }
+          }
+          connectBtn.click();
+        };
+        tryAutoConnect();
       }
 
       // Check for updates (after a short delay to not block startup)
@@ -4595,6 +4605,14 @@
     document.getElementById('autoStart').addEventListener('change', async (e) => {
       await window.videoHub.setAutoStart(e.target.checked);
       log(`Auto-start ${e.target.checked ? 'enabled' : 'disabled'}`, 'info');
+    });
+
+    document.getElementById('autoConnect').addEventListener('change', async (e) => {
+      await window.videoHub.setAutoConnect(e.target.checked);
+    });
+
+    document.getElementById('autoReconnect').addEventListener('change', async (e) => {
+      await window.videoHub.setAutoReconnect(e.target.checked);
     });
 
     // Log panel toggle

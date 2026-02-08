@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.3.0)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.3.1)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.3.0-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.0/Router.Protocol.Simulator-2.3.0-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.3.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.0/Router.Protocol.Simulator.Setup.2.3.0.exe) |
-| Windows Portable | [Router Protocol Simulator 2.3.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.0/Router.Protocol.Simulator.2.3.0.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.3.1-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.1/Router.Protocol.Simulator-2.3.1-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.3.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.1/Router.Protocol.Simulator.Setup.2.3.1.exe) |
+| Windows Portable | [Router Protocol Simulator 2.3.1.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.1/Router.Protocol.Simulator.2.3.1.exe) |
 
 ## Screenshots
 
@@ -231,6 +231,10 @@ Ensure the server is started (green status indicator) before connecting clients.
 - Some clients may require specifying matrix/level 0
 
 ## Changelog
+
+### v2.3.1
+- Fix auto-connect on launch not working when simulator is also auto-starting
+- Fix auto-connect and auto-reconnect settings not being saved
 
 ### v2.3.0
 - Salvos: Capture and recall crosspoint configurations
