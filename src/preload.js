@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('videoHub', {
   deleteSalvo: (salvoId) => ipcRenderer.invoke('delete-salvo', salvoId),
   recallSalvo: (salvoId, target) => ipcRenderer.invoke('recall-salvo', salvoId, target),
   captureSalvo: (name, selectedOutputs, target, level) => ipcRenderer.invoke('capture-salvo', name, selectedOutputs, target, level),
+  exportSalvos: () => ipcRenderer.invoke('export-salvos'),
+  importSalvos: () => ipcRenderer.invoke('import-salvos'),
+  importSalvosResolve: (imported, resolution) => ipcRenderer.invoke('import-salvos-resolve', imported, resolution),
 
   // Update checker
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

@@ -288,15 +288,10 @@
       padding: 4px 8px;
       border: none;
       background: transparent;
-      color: #666;
+      color: #888;
       cursor: pointer;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .router-history-item:hover .remove-btn {
-      opacity: 1;
+      font-size: 16px;
+      transition: color 0.2s;
     }
 
     .router-history-item .remove-btn:hover {
@@ -1154,6 +1149,51 @@
       margin-bottom: 10px;
     }
 
+    .import-resolve-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .import-resolve-dialog {
+      background: #2d3436;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 25px;
+      max-width: 450px;
+      width: 90%;
+    }
+
+    .import-resolve-dialog h3 {
+      margin: 0 0 15px 0;
+      color: #dfe6e9;
+      font-size: 1.1rem;
+    }
+
+    .import-resolve-message {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #b2bec3;
+      margin: 0 0 20px 0;
+      white-space: pre-wrap;
+      font-family: inherit;
+    }
+
+    .import-resolve-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     .capture-mode-indicator {
       display: none;
       align-items: center;
@@ -1834,6 +1874,9 @@
             <div class="separator"></div>
             <span class="selection-count" id="salvoSelectionCount"></span>
             <button class="btn btn-small" id="clearSelectionBtn" style="display: none;">Clear</button>
+            <div class="separator"></div>
+            <button class="btn btn-small" id="exportSalvosBtn">Export CSV</button>
+            <button class="btn btn-small" id="importSalvosBtn">Import CSV</button>
           </div>
           <div class="salvos-columns">
             <div class="salvos-destinations-column">
@@ -4385,6 +4428,69 @@
     document.getElementById('salvoLevelSelect').addEventListener('change', (e) => {
       selectedSalvoLevel = e.target.value;
     });
+
+    document.getElementById('exportSalvosBtn').addEventListener('click', async () => {
+      const result = await window.videoHub.exportSalvos();
+      if (result.success) {
+        log(`Exported ${result.count} salvo(s) to CSV`, 'success');
+      } else if (result.error !== 'Cancelled') {
+        log(`Export failed: ${result.error}`, 'error');
+      }
+    });
+
+    document.getElementById('importSalvosBtn').addEventListener('click', async () => {
+      const result = await window.videoHub.importSalvos();
+      if (result.success && result.needsResolution) {
+        // Show duplicate resolution dialog
+        const names = result.duplicateNames;
+        const msg = `${names.length} salvo(s) already exist with the same name:\n\n` +
+          names.map(n => `  • ${n}`).join('\n') +
+          '\n\nHow would you like to handle duplicates?';
+        showImportResolutionDialog(msg, result.imported);
+      } else if (result.success) {
+        salvos = result.salvos;
+        renderSalvosList();
+        renderXYSalvosBar();
+        log(`Imported ${result.count} salvo(s) from CSV`, 'success');
+      } else if (result.error !== 'Cancelled') {
+        log(`Import failed: ${result.error}`, 'error');
+      }
+    });
+
+    function showImportResolutionDialog(message, imported) {
+      const overlay = document.createElement('div');
+      overlay.className = 'import-resolve-overlay';
+      overlay.innerHTML = `
+        <div class="import-resolve-dialog">
+          <h3>Duplicate Salvos Found</h3>
+          <pre class="import-resolve-message">${message}</pre>
+          <div class="import-resolve-buttons">
+            <button class="btn btn-primary btn-small" data-action="overwrite">Overwrite</button>
+            <button class="btn btn-primary btn-small" data-action="rename">Rename</button>
+            <button class="btn btn-small" data-action="skip">Skip Duplicates</button>
+            <button class="btn btn-small" data-action="cancel">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.addEventListener('click', async (e) => {
+        const action = e.target.dataset.action;
+        if (!action) return;
+        overlay.remove();
+        if (action === 'cancel') return;
+
+        const res = await window.videoHub.importSalvosResolve(imported, action);
+        if (res.success) {
+          salvos = res.salvos;
+          renderSalvosList();
+          renderXYSalvosBar();
+          log(`Imported ${res.count} salvo(s) from CSV (${action})`, 'success');
+        } else {
+          log(`Import failed: ${res.error}`, 'error');
+        }
+      });
+    }
 
     // Initialize
     async function init() {

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const VideoHubServer = require('./videohub-server');
@@ -798,6 +798,196 @@ function setupIpcHandlers() {
       return { success: false, error: err.message };
     }
   });
+
+  ipcMain.handle('export-salvos', async () => {
+    const salvos = settings.salvos || [];
+    if (salvos.length === 0) {
+      return { success: false, error: 'No salvos to export' };
+    }
+
+    const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export Salvos',
+      defaultPath: `salvos-export.csv`,
+      filters: [{ name: 'CSV Files', extensions: ['csv'] }]
+    });
+
+    if (canceled || !filePath) return { success: false, error: 'Cancelled' };
+
+    // Build CSV: salvo_name, output, input, level, output_label, input_label, level_name, protocol, source
+    const header = 'salvo_name,output,input,level,output_label,input_label,level_name,protocol,source,created_at';
+    const rows = [];
+    for (const salvo of salvos) {
+      for (const route of salvo.routes) {
+        rows.push([
+          csvEscape(salvo.name),
+          route.output,
+          route.input,
+          route.level || 0,
+          csvEscape(route.outputLabel || ''),
+          csvEscape(route.inputLabel || ''),
+          csvEscape(route.levelName || ''),
+          csvEscape(salvo.protocol || ''),
+          csvEscape(salvo.source || ''),
+          csvEscape(salvo.createdAt || '')
+        ].join(','));
+      }
+    }
+
+    const csv = header + '\n' + rows.join('\n') + '\n';
+    fs.writeFileSync(filePath, csv, 'utf-8');
+    return { success: true, count: salvos.length, filePath };
+  });
+
+  ipcMain.handle('import-salvos', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
+      title: 'Import Salvos',
+      filters: [{ name: 'CSV Files', extensions: ['csv'] }],
+      properties: ['openFile']
+    });
+
+    if (canceled || !filePaths || filePaths.length === 0) {
+      return { success: false, error: 'Cancelled' };
+    }
+
+    try {
+      const csv = fs.readFileSync(filePaths[0], 'utf-8');
+      const lines = csv.split('\n').filter(l => l.trim());
+      if (lines.length < 2) {
+        return { success: false, error: 'CSV file is empty or has no data rows' };
+      }
+
+      // Skip header, group rows by salvo name
+      const salvoMap = {};
+      for (let i = 1; i < lines.length; i++) {
+        const fields = csvParseLine(lines[i]);
+        if (fields.length < 6) continue;
+
+        const name = fields[0];
+        if (!salvoMap[name]) {
+          salvoMap[name] = {
+            id: `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
+            name,
+            routes: [],
+            protocol: fields[7] || 'videohub',
+            source: fields[8] || 'simulator',
+            createdAt: fields[9] || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+
+        salvoMap[name].routes.push({
+          output: parseInt(fields[1]) || 0,
+          input: parseInt(fields[2]) || 0,
+          level: parseInt(fields[3]) || 0,
+          outputLabel: fields[4] || '',
+          inputLabel: fields[5] || '',
+          levelName: fields[6] || ''
+        });
+      }
+
+      const imported = Object.values(salvoMap);
+      if (imported.length === 0) {
+        return { success: false, error: 'No valid salvos found in CSV' };
+      }
+
+      // Check for duplicates by name
+      const existingSalvos = settings.salvos || [];
+      const existingNames = new Set(existingSalvos.map(s => s.name));
+      const duplicateNames = imported.filter(s => existingNames.has(s.name)).map(s => s.name);
+
+      if (duplicateNames.length > 0) {
+        return { success: true, needsResolution: true, imported, duplicateNames };
+      }
+
+      // No duplicates - just add all
+      if (!settings.salvos) settings.salvos = [];
+      settings.salvos.push(...imported);
+      saveSettings();
+
+      return { success: true, count: imported.length, salvos: settings.salvos };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('import-salvos-resolve', (event, imported, resolution) => {
+    if (!settings.salvos) settings.salvos = [];
+
+    const existingByName = {};
+    settings.salvos.forEach(s => { existingByName[s.name] = s; });
+
+    let added = 0;
+    for (const salvo of imported) {
+      const existing = existingByName[salvo.name];
+      if (existing) {
+        if (resolution === 'overwrite') {
+          const idx = settings.salvos.findIndex(s => s.id === existing.id);
+          if (idx >= 0) {
+            salvo.id = existing.id;
+            salvo.updatedAt = new Date().toISOString();
+            settings.salvos[idx] = salvo;
+          }
+          added++;
+        } else if (resolution === 'rename') {
+          let newName = salvo.name + ' (imported)';
+          let counter = 2;
+          const allNames = new Set(settings.salvos.map(s => s.name));
+          while (allNames.has(newName)) {
+            newName = salvo.name + ` (imported ${counter})`;
+            counter++;
+          }
+          salvo.name = newName;
+          settings.salvos.push(salvo);
+          added++;
+        }
+        // skip: do nothing
+      } else {
+        settings.salvos.push(salvo);
+        added++;
+      }
+    }
+
+    saveSettings();
+    return { success: true, count: added, salvos: settings.salvos };
+  });
+}
+
+function csvEscape(value) {
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function csvParseLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        fields.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current);
+  return fields;
 }
 
 app.whenReady().then(async () => {

@@ -4,13 +4,13 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Download
 
-**[Download Latest Release (v2.2.3)](https://github.com/videojedi/VideoHubSim/releases/latest)**
+**[Download Latest Release (v2.3.0)](https://github.com/videojedi/VideoHubSim/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
-| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.2.3-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.3/Router.Protocol.Simulator-2.2.3-universal.dmg) |
-| Windows Installer | [Router Protocol Simulator Setup 2.2.3.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.3/Router.Protocol.Simulator.Setup.2.2.3.exe) |
-| Windows Portable | [Router Protocol Simulator 2.2.3.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.2.3/Router.Protocol.Simulator.2.2.3.exe) |
+| macOS (Intel + Apple Silicon) | [Router Protocol Simulator-2.3.0-universal.dmg](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.0/Router.Protocol.Simulator-2.3.0-universal.dmg) |
+| Windows Installer | [Router Protocol Simulator Setup 2.3.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.0/Router.Protocol.Simulator.Setup.2.3.0.exe) |
+| Windows Portable | [Router Protocol Simulator 2.3.0.exe](https://github.com/videojedi/VideoHubSim/releases/download/v2.3.0/Router.Protocol.Simulator.2.3.0.exe) |
 
 ## Screenshots
 
@@ -232,12 +232,14 @@ Ensure the server is started (green status indicator) before connecting clients.
 
 ## Changelog
 
-### v2.2.3
+### v2.3.0
 - Salvos: Capture and recall crosspoint configurations
 - Select specific destinations or capture all routes at once
 - Multi-level support: choose which level to capture for SW-P-08/GV Native
 - Quick-access salvo recall buttons on XY grid panel
 - Salvos persist across sessions
+- Import/Export salvos as CSV with duplicate resolution (overwrite, rename, skip)
+- Router history entries now show a visible delete button
 
 ### v2.2.2
 - Fill and Increment now supports letter sequences (e.g., "VTR A" → "VTR B" → "VTR C")
