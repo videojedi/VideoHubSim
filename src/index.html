@@ -1081,11 +1081,88 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.15s;
+      border-left: 3px solid transparent;
     }
 
     .salvo-card:hover {
       background: rgba(255, 255, 255, 0.08);
+    }
+
+    .salvo-card.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    .salvo-card.drag-over {
+      box-shadow: 0 -2px 0 0 #4a69bd;
+    }
+
+    .salvo-drag-handle {
+      cursor: grab;
+      color: #555;
+      font-size: 1rem;
+      line-height: 1;
+      letter-spacing: -2px;
+      padding: 2px 4px;
+      user-select: none;
+      transition: color 0.2s;
+    }
+    .salvo-drag-handle:hover { color: #999; }
+    .salvo-drag-handle:active { cursor: grabbing; }
+
+    .salvo-color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.15s;
+    }
+    .salvo-color-dot:hover { transform: scale(1.3); }
+
+    .salvo-color-picker {
+      display: none;
+      gap: 4px;
+      padding: 6px 8px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 4px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .salvo-color-picker.visible { display: flex; }
+
+    .salvo-color-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .salvo-color-swatch:hover { transform: scale(1.2); }
+    .salvo-color-swatch.active { border-color: #fff; }
+
+    .salvo-color-clear {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: transparent;
+      position: relative;
+      transition: transform 0.15s;
+    }
+    .salvo-color-clear:hover { transform: scale(1.2); }
+    .salvo-color-clear::after {
+      content: '×';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #888;
+      font-size: 12px;
+      line-height: 1;
     }
 
     .salvo-card-header {
@@ -1314,10 +1391,11 @@
       height: 80px;
       vertical-align: bottom;
       padding-bottom: 5px;
+      text-align: center;
     }
 
     .xy-grid th.input-header span {
-      display: block;
+      display: inline-block;
       writing-mode: vertical-rl;
       text-orientation: mixed;
       transform: rotate(180deg);
@@ -1517,6 +1595,116 @@
 
     .xy-grid.dragging {
       user-select: none;
+    }
+
+    /* Protect toggle switch */
+    .protect-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 120px;
+      padding: 3px 10px 3px 4px;
+      border: 1px solid rgba(76, 175, 80, 0.5);
+      border-radius: 20px;
+      background: rgba(76, 175, 80, 0.08);
+      cursor: pointer;
+      transition: all 0.3s;
+      user-select: none;
+    }
+    .protect-toggle .toggle-track {
+      width: 32px;
+      height: 18px;
+      background: #4caf50;
+      border-radius: 9px;
+      position: relative;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+    .protect-toggle .toggle-thumb {
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 16px;
+      transition: all 0.3s;
+    }
+    .protect-toggle .toggle-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #4caf50;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: color 0.3s;
+      width: 56px;
+      text-align: center;
+    }
+    .protect-toggle:hover { border-color: rgba(76, 175, 80, 0.8); }
+
+    .protect-toggle.armed {
+      border-color: rgba(255, 80, 80, 0.7);
+      background: rgba(255, 80, 80, 0.08);
+    }
+    .protect-toggle.armed .toggle-track {
+      background: #e04040;
+    }
+    .protect-toggle.armed .toggle-thumb {
+      left: 2px;
+    }
+    .protect-toggle.armed .toggle-label {
+      color: #e04040;
+    }
+    .protect-toggle.armed:hover {
+      border-color: rgba(255, 80, 80, 0.9);
+      background: rgba(255, 80, 80, 0.12);
+    }
+
+    /* Grid dimming when protected */
+    .xy-grid-container.protected .xy-grid td,
+    .xy-grid-container.protected .xy-grid th:not(.corner) {
+      opacity: 0.5;
+      filter: grayscale(100%);
+      pointer-events: none;
+    }
+    .xy-grid-container.protected .xy-grid td {
+      cursor: not-allowed;
+    }
+
+    .xy-protect-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .xy-toolbar-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+    }
+    .xy-toolbar-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    .xy-toolbar-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .xy-toolbar-btn svg {
+      fill: currentColor;
     }
 
     /* Mode Selector */
@@ -1774,6 +1962,12 @@
               Auto-connect on launch
             </label>
           </div>
+          <div class="config-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="Start with routing disabled on the XY page, and re-disable after 5 minutes of inactivity">
+              <input type="checkbox" id="autoProtect" style="width: auto;">
+              Auto-protect on XY page
+            </label>
+          </div>
           <button class="btn btn-primary" id="connectBtn" style="width: 100%; margin-top: 10px;">Connect</button>
           <button class="btn btn-danger" id="disconnectBtn" style="width: 100%; margin-top: 10px; display: none;">Disconnect</button>
         </div>
@@ -1850,10 +2044,20 @@
             <select id="xyLevelSelect"></select>
             <span class="level-indicator" id="xyLevelIndicator">Level 1: Video</span>
           </div>
+          <div class="xy-protect-bar">
+            <div class="protect-toggle" id="xyProtectBtn" title="Routing enabled — click to protect">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <span class="toggle-label">Enabled</span>
+            </div>
+            <button class="xy-toolbar-btn" id="xyUndoBtn" title="Undo last route change" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12.5 8c-2.65 0-5.05 1.04-6.83 2.73L2 7.07V16h8.93l-3.71-3.71C8.74 11.07 10.53 10.25 12.5 10.25c3.59 0 6.6 2.38 7.6 5.65l2.37-.78C21.12 11.23 17.17 8 12.5 8z"/></svg>
+              <span>Undo</span>
+            </button>
+          </div>
           <div class="xy-salvos-bar" id="xySalvosBar">
             <!-- Salvo recall buttons will be generated here -->
           </div>
-          <div class="xy-grid-container">
+          <div class="xy-grid-container" id="xyGridContainer">
             <table class="xy-grid" id="xyGrid">
               <!-- XY grid will be generated here -->
             </table>
@@ -1963,6 +2167,11 @@
     let isConnected = false;
     let isConnecting = false;
     let isServerRunning = false;
+    let xyProtectMode = false;
+    let autoProtectTimer = null;
+    const AUTO_PROTECT_DELAY = 5 * 60 * 1000; // 5 minutes
+    const UNDO_HISTORY_MAX = 50;
+    let undoHistory = [];
 
     // Lock icons (SVG)
     const LOCK_ICON_LOCKED = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
@@ -2136,6 +2345,91 @@
       logPanel.scrollTop = logPanel.scrollHeight;
     }
 
+    // Protect mode
+    function setProtectMode(enabled) {
+      xyProtectMode = enabled;
+      const toggle = document.getElementById('xyProtectBtn');
+      if (toggle) {
+        toggle.classList.toggle('armed', xyProtectMode);
+        toggle.querySelector('.toggle-label').textContent = xyProtectMode ? 'Disabled' : 'Enabled';
+        toggle.title = xyProtectMode
+          ? 'Routing is disabled — click to enable'
+          : 'Routing enabled — click to protect';
+      }
+      document.getElementById('xyGridContainer')?.classList.toggle('protected', xyProtectMode);
+    }
+
+    function resetAutoProtectTimer() {
+      if (autoProtectTimer) clearTimeout(autoProtectTimer);
+      const autoProtectCheckbox = document.getElementById('autoProtect');
+      if (autoProtectCheckbox?.checked && !xyProtectMode) {
+        autoProtectTimer = setTimeout(() => {
+          setProtectMode(true);
+          log('Routing disabled after inactivity', 'info');
+        }, AUTO_PROTECT_DELAY);
+      }
+    }
+
+    // Reset auto-protect timer on any user activity
+    ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, () => resetAutoProtectTimer(), { passive: true });
+    });
+
+    // Undo
+    function pushUndoEntry(entry) {
+      undoHistory.push({ ...entry, timestamp: Date.now() });
+      if (undoHistory.length > UNDO_HISTORY_MAX) {
+        undoHistory.shift();
+      }
+      updateUndoButton();
+    }
+
+    function updateUndoButton() {
+      const btn = document.getElementById('xyUndoBtn');
+      if (!btn) return;
+      const hasHistory = undoHistory.length > 0;
+      btn.disabled = !hasHistory;
+      const modKey = navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl';
+      if (hasHistory) {
+        const last = undoHistory[undoHistory.length - 1];
+        const outLabel = state.outputLabels?.[last.output] || `Output ${last.output + 1}`;
+        const prevLabel = last.previousInput !== undefined
+          ? (state.inputLabels?.[last.previousInput] || `Input ${last.previousInput + 1}`)
+          : 'None';
+        btn.title = `Undo: restore ${outLabel} → ${prevLabel} (${modKey}+Z)`;
+      } else {
+        btn.title = `Undo last route change (${modKey}+Z)`;
+      }
+    }
+
+    async function performUndo() {
+      if (undoHistory.length === 0) return;
+      if (xyProtectMode) {
+        log('Routing is disabled', 'error');
+        return;
+      }
+
+      const entry = undoHistory.pop();
+      updateUndoButton();
+
+      const lockState = state.outputLocks?.[entry.output] || 'U';
+      if (lockState === 'O' || lockState === 'L') {
+        log('Cannot undo: output is locked', 'error');
+        return;
+      }
+
+      if (entry.previousInput === undefined || entry.previousInput === null) {
+        log('Cannot undo: no previous route to restore', 'error');
+        return;
+      }
+
+      await window.videoHub.setRoute(entry.output, entry.previousInput, currentLevel, currentView);
+      const outLabel = state.outputLabels?.[entry.output] || `Output ${entry.output + 1}`;
+      const inLabel = state.inputLabels?.[entry.previousInput] || `Input ${entry.previousInput + 1}`;
+      log(`Undone: ${outLabel} → ${inLabel}`, 'info');
+      resetAutoProtectTimer();
+    }
+
     // UI Updates
     function updateServerStatus(running, port) {
       if (running) {
@@ -2249,9 +2543,18 @@
         }
 
         select.addEventListener('change', async (e) => {
+          if (xyProtectMode) {
+            log('Routing is disabled', 'error');
+            e.target.value = state.routing?.[parseInt(e.target.dataset.output)] ?? e.target.value;
+            return;
+          }
           const output = parseInt(e.target.dataset.output);
           const input = parseInt(e.target.value);
+          const routing = getCurrentRouting();
+          const previousInput = routing?.[output];
           await window.videoHub.setRoute(output, input, currentLevel, currentView);
+          pushUndoEntry({ output, previousInput });
+          resetAutoProtectTimer();
         });
 
         // Create lock button (only visible for BlackMagic protocol)
@@ -3186,10 +3489,14 @@
       }
 
       async function applyDragRoutes(start, end) {
+        const routing = getCurrentRouting();
         const routes = calculateDragRoutes(start, end);
         for (const { output, input } of routes) {
+          const previousInput = routing?.[output];
           await window.videoHub.setRoute(output, input, currentLevel, currentView);
+          pushUndoEntry({ output, previousInput });
         }
+        resetAutoProtectTimer();
       }
 
       // Track last known drag end position for when releasing outside grid
@@ -3256,6 +3563,7 @@
       // Add event handlers
       xyGrid.querySelectorAll('.crosspoint').forEach(cell => {
         cell.addEventListener('mousedown', (e) => {
+          if (xyProtectMode) return;
           e.preventDefault();
           dragStart = {
             output: parseInt(cell.dataset.output),
@@ -4204,6 +4512,17 @@
       }
     }
 
+    const SALVO_COLORS = [
+      { name: 'Red', value: '#e74c3c' },
+      { name: 'Orange', value: '#e67e22' },
+      { name: 'Yellow', value: '#f1c40f' },
+      { name: 'Green', value: '#2ecc71' },
+      { name: 'Blue', value: '#3498db' },
+      { name: 'Purple', value: '#9b59b6' },
+      { name: 'Pink', value: '#e84393' },
+      { name: 'Cyan', value: '#00cec9' },
+    ];
+
     function renderXYSalvosBar() {
       const bar = document.getElementById('xySalvosBar');
       if (!bar) return;
@@ -4227,6 +4546,11 @@
         btn.className = 'salvo-recall-btn';
         btn.textContent = salvo.name;
         btn.title = `Recall ${salvo.routes?.length || 0} routes`;
+        if (salvo.color) {
+          btn.style.borderColor = salvo.color;
+          btn.style.color = salvo.color;
+          btn.style.background = salvo.color + '20';
+        }
         btn.addEventListener('click', () => recallSalvo(salvo.id));
         bar.appendChild(btn);
       });
@@ -4251,9 +4575,23 @@
         const card = document.createElement('div');
         card.className = 'salvo-card';
         card.dataset.salvoId = salvo.id;
+        card.draggable = true;
+        if (salvo.color) {
+          card.style.borderLeftColor = salvo.color;
+        }
 
         const header = document.createElement('div');
         header.className = 'salvo-card-header';
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'salvo-drag-handle';
+        dragHandle.textContent = '⋮⋮';
+        dragHandle.title = 'Drag to reorder';
+
+        const colorDot = document.createElement('span');
+        colorDot.className = 'salvo-color-dot';
+        colorDot.style.background = salvo.color || '#555';
+        colorDot.title = 'Click to change color';
 
         const name = document.createElement('span');
         name.className = 'salvo-name';
@@ -4265,8 +4603,50 @@
         const date = new Date(salvo.createdAt).toLocaleDateString();
         meta.textContent = `${routeCount} routes | ${date}`;
 
+        header.appendChild(dragHandle);
+        header.appendChild(colorDot);
         header.appendChild(name);
         header.appendChild(meta);
+
+        // Color picker (hidden by default)
+        const colorPicker = document.createElement('div');
+        colorPicker.className = 'salvo-color-picker';
+        SALVO_COLORS.forEach(c => {
+          const swatch = document.createElement('span');
+          swatch.className = 'salvo-color-swatch' + (salvo.color === c.value ? ' active' : '');
+          swatch.style.background = c.value;
+          swatch.title = c.name;
+          swatch.addEventListener('click', async () => {
+            const result = await window.videoHub.setSalvoColor(salvo.id, c.value);
+            if (result.success) {
+              salvos = result.salvos;
+              renderSalvosList();
+              renderXYSalvosBar();
+            }
+          });
+          colorPicker.appendChild(swatch);
+        });
+        const clearSwatch = document.createElement('span');
+        clearSwatch.className = 'salvo-color-clear';
+        clearSwatch.title = 'No color';
+        clearSwatch.addEventListener('click', async () => {
+          const result = await window.videoHub.setSalvoColor(salvo.id, null);
+          if (result.success) {
+            salvos = result.salvos;
+            renderSalvosList();
+            renderXYSalvosBar();
+          }
+        });
+        colorPicker.appendChild(clearSwatch);
+
+        colorDot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Close any other open pickers
+          document.querySelectorAll('.salvo-color-picker.visible').forEach(p => {
+            if (p !== colorPicker) p.classList.remove('visible');
+          });
+          colorPicker.classList.toggle('visible');
+        });
 
         const routesSummary = document.createElement('div');
         routesSummary.className = 'salvo-routes-summary';
@@ -4304,8 +4684,53 @@
         actions.appendChild(deleteBtn);
 
         card.appendChild(header);
+        card.appendChild(colorPicker);
         card.appendChild(routesSummary);
         card.appendChild(actions);
+
+        // Drag-and-drop reorder
+        card.addEventListener('dragstart', (e) => {
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', salvo.id);
+        });
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          salvosList.querySelectorAll('.salvo-card').forEach(c => c.classList.remove('drag-over'));
+        });
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const dragging = salvosList.querySelector('.salvo-card.dragging');
+          if (dragging && dragging !== card) {
+            card.classList.add('drag-over');
+          }
+        });
+        card.addEventListener('dragleave', () => {
+          card.classList.remove('drag-over');
+        });
+        card.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          card.classList.remove('drag-over');
+          const draggedId = e.dataTransfer.getData('text/plain');
+          if (draggedId === salvo.id) return;
+
+          const ids = salvos.map(s => s.id);
+          const fromIndex = ids.indexOf(draggedId);
+          const toIndex = ids.indexOf(salvo.id);
+          if (fromIndex < 0 || toIndex < 0) return;
+
+          ids.splice(fromIndex, 1);
+          ids.splice(toIndex, 0, draggedId);
+
+          const result = await window.videoHub.reorderSalvos(ids);
+          if (result.success) {
+            salvos = result.salvos;
+            renderSalvosList();
+            renderXYSalvosBar();
+          }
+        });
+
         salvosList.appendChild(card);
       });
     }
@@ -4334,6 +4759,10 @@
     }
 
     async function recallSalvo(salvoId) {
+      if (xyProtectMode) {
+        log('Routing is disabled', 'error');
+        return;
+      }
       const salvo = salvos.find(s => s.id === salvoId);
       if (!salvo) return;
 
@@ -4341,6 +4770,7 @@
 
       if (result.success) {
         log(`Salvo "${salvo.name}" recalled - ${result.appliedCount} routes applied`, 'success');
+        resetAutoProtectTimer();
       } else {
         log(`Salvo recall had errors: ${result.errors?.join(', ') || 'Unknown error'}`, 'warning');
       }
@@ -4523,6 +4953,12 @@
         document.getElementById('controllerLevelCount').value = savedSettings.controllerLevels || 1;
         document.getElementById('autoReconnect').checked = savedSettings.autoReconnect !== false;
         document.getElementById('autoConnect').checked = savedSettings.autoConnect || false;
+        document.getElementById('autoProtect').checked = savedSettings.autoProtect || false;
+
+        // Enable protect mode by default if auto-protect is on
+        if (savedSettings.autoProtect) {
+          setProtectMode(true);
+        }
 
         // View (which state to display/edit)
         if (savedSettings.view) {
@@ -4613,6 +5049,41 @@
 
     document.getElementById('autoReconnect').addEventListener('change', async (e) => {
       await window.videoHub.setAutoReconnect(e.target.checked);
+    });
+
+    document.getElementById('autoProtect').addEventListener('change', (e) => {
+      window.videoHub.setAutoProtect(e.target.checked);
+      if (e.target.checked) {
+        setProtectMode(true);
+        log('Auto-protect enabled', 'info');
+      } else {
+        if (autoProtectTimer) clearTimeout(autoProtectTimer);
+        autoProtectTimer = null;
+      }
+    });
+
+    document.getElementById('xyProtectBtn').addEventListener('click', () => {
+      setProtectMode(!xyProtectMode);
+      if (xyProtectMode) {
+        log('Routing disabled', 'info');
+        if (autoProtectTimer) clearTimeout(autoProtectTimer);
+      } else {
+        log('Routing enabled', 'info');
+        resetAutoProtectTimer();
+      }
+    });
+
+    document.getElementById('xyUndoBtn').addEventListener('click', performUndo);
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+        if (activeTab !== 'xy') return;
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        performUndo();
+      }
     });
 
     // Log panel toggle

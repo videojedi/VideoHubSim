@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('videoHub', {
   setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
   setAutoConnect: (enabled) => ipcRenderer.invoke('set-auto-connect', enabled),
   setAutoReconnect: (enabled) => ipcRenderer.invoke('set-auto-reconnect', enabled),
+  setAutoProtect: (enabled) => ipcRenderer.invoke('set-auto-protect', enabled),
 
   // Router history
   getRouterHistory: () => ipcRenderer.invoke('get-router-history'),
@@ -42,6 +43,8 @@ contextBridge.exposeInMainWorld('videoHub', {
   getSalvos: () => ipcRenderer.invoke('get-salvos'),
   saveSalvo: (salvo) => ipcRenderer.invoke('save-salvo', salvo),
   deleteSalvo: (salvoId) => ipcRenderer.invoke('delete-salvo', salvoId),
+  reorderSalvos: (orderedIds) => ipcRenderer.invoke('reorder-salvos', orderedIds),
+  setSalvoColor: (salvoId, color) => ipcRenderer.invoke('set-salvo-color', salvoId, color),
   recallSalvo: (salvoId, target) => ipcRenderer.invoke('recall-salvo', salvoId, target),
   captureSalvo: (name, selectedOutputs, target, level) => ipcRenderer.invoke('capture-salvo', name, selectedOutputs, target, level),
   exportSalvos: () => ipcRenderer.invoke('export-salvos'),

@@ -56,6 +56,7 @@ function loadSettings() {
     controllerLevels: 1,
     autoReconnect: true,
     autoConnect: false,
+    autoProtect: false,
     // Router connection history
     routerHistory: [],
     // Salvos - captured routing states
@@ -524,6 +525,12 @@ function setupIpcHandlers() {
     return { success: true };
   });
 
+  ipcMain.handle('set-auto-protect', (event, enabled) => {
+    settings.autoProtect = enabled;
+    saveSettings();
+    return { success: true };
+  });
+
   // Update checker
   ipcMain.handle('check-for-updates', async () => {
     try {
@@ -699,6 +706,23 @@ function setupIpcHandlers() {
     if (index < 0) return { success: false, error: 'Salvo not found' };
 
     settings.salvos.splice(index, 1);
+    saveSettings();
+    return { success: true, salvos: settings.salvos };
+  });
+
+  ipcMain.handle('reorder-salvos', (event, orderedIds) => {
+    if (!settings.salvos) return { success: false };
+    const ordered = orderedIds.map(id => settings.salvos.find(s => s.id === id)).filter(Boolean);
+    settings.salvos = ordered;
+    saveSettings();
+    return { success: true, salvos: settings.salvos };
+  });
+
+  ipcMain.handle('set-salvo-color', (event, salvoId, color) => {
+    if (!settings.salvos) return { success: false };
+    const salvo = settings.salvos.find(s => s.id === salvoId);
+    if (!salvo) return { success: false };
+    salvo.color = color || null;
     saveSettings();
     return { success: true, salvos: settings.salvos };
   });
