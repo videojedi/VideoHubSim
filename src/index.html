@@ -444,7 +444,43 @@
       background: rgba(255, 165, 0, 0.2);
       border-color: orange;
       color: orange;
-      cursor: not-allowed;
+      cursor: pointer;
+    }
+
+    .lock-btn.force-unlocking,
+    .xy-lock-btn.force-unlocking {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lock-btn.force-unlocking::after,
+    .xy-lock-btn.force-unlocking::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: #ff6b6b;
+      border-radius: 0 0 3px 3px;
+      animation: forceUnlockProgress 2s linear forwards;
+    }
+
+    @keyframes forceUnlockProgress {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
+
+    .lock-btn.locked-other.shake,
+    .xy-lock-btn.locked-other.shake {
+      animation: lockShake 0.4s ease-in-out;
+    }
+
+    @keyframes lockShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(1px); }
     }
 
     .lock-btn:not(.visible) {
@@ -1489,7 +1525,7 @@
       background: rgba(255, 165, 0, 0.2);
       border-color: orange;
       color: orange;
-      cursor: not-allowed;
+      cursor: pointer;
     }
 
     .xy-grid td.output-label {
@@ -2181,6 +2217,64 @@
     const LOCK_ICON_LOCKED = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
     const LOCK_ICON_UNLOCKED = '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>';
 
+    // Press-and-hold force unlock (matches Master Control panel behavior)
+    const FORCE_UNLOCK_HOLD_MS = 2000;
+
+    function setupLockButton(btn, getOutputFn, setLockFn) {
+      let holdTimer = null;
+
+      function cancelHold() {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+        btn.classList.remove('force-unlocking');
+      }
+
+      btn.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        const output = getOutputFn(btn);
+        const currentLock = state.outputLocks?.[output] || 'U';
+
+        if (currentLock === 'L') {
+          e.preventDefault();
+          btn.classList.add('force-unlocking');
+          holdTimer = setTimeout(async () => {
+            holdTimer = null;
+            btn.classList.remove('force-unlocking');
+            await setLockFn(output, 'F');
+          }, FORCE_UNLOCK_HOLD_MS);
+        }
+      });
+
+      btn.addEventListener('mouseup', (e) => {
+        if (e.button !== 0) return;
+        const output = getOutputFn(btn);
+        const currentLock = state.outputLocks?.[output] || 'U';
+
+        if (currentLock === 'L') {
+          if (holdTimer) {
+            cancelHold();
+            btn.classList.add('shake');
+            setTimeout(() => btn.classList.remove('shake'), 400);
+          }
+          return;
+        }
+      });
+
+      btn.addEventListener('mouseleave', cancelHold);
+
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const output = getOutputFn(btn);
+        const currentLock = state.outputLocks?.[output] || 'U';
+        if (currentLock === 'L') return;
+        const newLock = currentLock === 'O' ? 'U' : 'O';
+        await setLockFn(output, newLock);
+      });
+    }
+
     // DOM Elements
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -2565,27 +2659,18 @@
         const lockBtn = document.createElement('button');
         lockBtn.className = 'lock-btn' + (isBlackMagic ? ' visible' : '');
         lockBtn.dataset.output = o;
-        lockBtn.title = isLockedByOther ? 'Locked by another client (Ctrl+click to unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
+        lockBtn.title = isLockedByOther ? 'Locked by another client (hold to force unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
         lockBtn.innerHTML = isLocked ? LOCK_ICON_LOCKED : LOCK_ICON_UNLOCKED;
 
         if (isLocked) {
           lockBtn.classList.add(isLockedByOther ? 'locked-other' : 'locked');
         }
 
-        lockBtn.addEventListener('click', async (e) => {
-          const output = parseInt(e.currentTarget.dataset.output);
-          const currentLock = state.outputLocks?.[output] || 'U';
-          // Locked by another client - require Ctrl+click to force unlock
-          if (currentLock === 'L') {
-            if (e.ctrlKey || e.metaKey) {
-              await window.videoHub.setLock(output, 'F', currentView);
-            }
-            return;
-          }
-          // Normal toggle for own locks
-          const newLock = currentLock === 'O' ? 'U' : 'O';
-          await window.videoHub.setLock(output, newLock, currentView);
-        });
+        setupLockButton(
+          lockBtn,
+          (btn) => parseInt(btn.dataset.output),
+          (output, lock) => window.videoHub.setLock(output, lock, currentView)
+        );
 
         row.appendChild(outputNum);
         row.appendChild(outputLabel);
@@ -3343,7 +3428,7 @@
         const isLockedByOther = lockState === 'L';
         const lockBtnClass = isLocked ? (isLockedByOther ? 'locked-other' : 'locked') : '';
         const lockIcon = isLocked ? LOCK_ICON_LOCKED : LOCK_ICON_UNLOCKED;
-        const lockTitle = isLockedByOther ? 'Locked by another client (Ctrl+click to unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
+        const lockTitle = isLockedByOther ? 'Locked by another client (hold to force unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
 
         html += `<tr data-output="${o}">`;
         html += `<td class="lock-cell${lockVisibleClass}"><button class="xy-lock-btn ${lockBtnClass}" data-output="${o}" title="${lockTitle}">${lockIcon}</button></td>`;
@@ -3363,21 +3448,11 @@
       // Add lock button event listeners
       if (isBlackMagic) {
         xyGrid.querySelectorAll('.xy-lock-btn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const output = parseInt(e.currentTarget.dataset.output);
-            const currentLock = state.outputLocks?.[output] || 'U';
-            // Locked by another client - require Ctrl+click to force unlock
-            if (currentLock === 'L') {
-              if (e.ctrlKey || e.metaKey) {
-                await window.videoHub.setLock(output, 'F', currentView);
-              }
-              return;
-            }
-            // Normal toggle for own locks
-            const newLock = currentLock === 'O' ? 'U' : 'O';
-            await window.videoHub.setLock(output, newLock, currentView);
-          });
+          setupLockButton(
+            btn,
+            (btn) => parseInt(btn.dataset.output),
+            (output, lock) => window.videoHub.setLock(output, lock, currentView)
+          );
         });
       }
 
@@ -3884,7 +3959,7 @@
         const isLocked = lock === 'O' || lock === 'L';
         const isLockedByOther = lock === 'L';
         const lockIcon = isLocked ? LOCK_ICON_LOCKED : LOCK_ICON_UNLOCKED;
-        const lockTitle = isLockedByOther ? 'Locked by another client (Ctrl+click to unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
+        const lockTitle = isLockedByOther ? 'Locked by another client (hold to force unlock)' : (isLocked ? 'Click to unlock' : 'Click to lock');
 
         // Update routing grid row
         const row = routingGrid.querySelector(`.routing-row:nth-child(${output + 1})`);

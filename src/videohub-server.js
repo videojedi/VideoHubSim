@@ -42,7 +42,7 @@ class VideoHubServer extends EventEmitter {
       this.outputLabels[i] = this.defaultOutputLabels[i] || `Output ${i + 1}`;
     }
 
-    // Initialize locks - stores the socket that owns each lock (null = unlocked)
+    // Initialize locks - stores the IP that owns each lock (null = unlocked, 'UI' = simulator UI)
     this.lockOwners = {};
     for (let i = 0; i < this.outputs; i++) {
       this.lockOwners[i] = null;
@@ -50,6 +50,13 @@ class VideoHubServer extends EventEmitter {
 
     this.clients = new Set();
     this.server = null;
+  }
+
+  _getClientIP(socket) {
+    let addr = socket.remoteAddress || '';
+    addr = addr.replace(/^::ffff:/, '');
+    if (addr === '::1') addr = '127.0.0.1';
+    return addr;
   }
 
   start() {
@@ -115,21 +122,7 @@ class VideoHubServer extends EventEmitter {
 
     socket.on('close', () => {
       this.clients.delete(socket);
-
-      // Clear any locks owned by this client
-      const changes = [];
-      for (let i = 0; i < this.outputs; i++) {
-        if (this.lockOwners[i] === socket) {
-          this.lockOwners[i] = null;
-          changes.push({ output: i });
-        }
-      }
-      if (changes.length > 0) {
-        this.broadcastLockChange(changes);
-        const emitChanges = changes.map(c => ({ output: c.output, lock: 'U' }));
-        this.emit('locks-changed', emitChanges);
-      }
-
+      // IP-based locks persist across disconnections (matches real hardware)
       this.emit('client-disconnected', clientId);
     });
 
@@ -174,8 +167,9 @@ class VideoHubServer extends EventEmitter {
           const output = parseInt(parts[0], 10);
           const input = parseInt(parts[1], 10);
 
-          // Check if locked by another client (lockOwners[output] exists and is not this socket)
-          const lockedByOther = this.lockOwners[output] !== null && this.lockOwners[output] !== socket;
+          // Check if locked by another client (IP-based ownership)
+          const clientIP = this._getClientIP(socket);
+          const lockedByOther = this.lockOwners[output] !== null && this.lockOwners[output] !== clientIP && this.lockOwners[output] !== 'UI';
           if (output >= 0 && output < this.outputs &&
               input >= 0 && input < this.inputs &&
               !lockedByOther) {
@@ -202,13 +196,14 @@ class VideoHubServer extends EventEmitter {
       if (dataLines.length === 0) {
         // Query - respond with ACK and send lock status for this client
         socket.write('ACK\n\n');
+        const queryClientIP = this._getClientIP(socket);
         let response = 'VIDEO OUTPUT LOCKS:\n';
         for (let i = 0; i < this.outputs; i++) {
           const owner = this.lockOwners[i];
           let lockState;
           if (owner === null) {
             lockState = 'U';
-          } else if (owner === socket) {
+          } else if (owner === queryClientIP) {
             lockState = 'O';
           } else {
             lockState = 'L';
@@ -235,20 +230,21 @@ class VideoHubServer extends EventEmitter {
 
           if (output >= 0 && output < this.outputs) {
             const upperLock = lockState.toUpperCase();
+            const lockClientIP = this._getClientIP(socket);
             if (upperLock === 'O') {
-              // Lock this output - this client now owns it
-              this.lockOwners[output] = socket;
-              changes.push({ output, socket });
+              // Lock this output - this client's IP now owns it
+              this.lockOwners[output] = lockClientIP;
+              changes.push({ output });
             } else if (upperLock === 'U') {
-              // Unlock - only works if unlocked or owned by this client
-              if (this.lockOwners[output] === null || this.lockOwners[output] === socket) {
+              // Unlock - only works if unlocked or owned by this client's IP
+              if (this.lockOwners[output] === null || this.lockOwners[output] === lockClientIP) {
                 this.lockOwners[output] = null;
-                changes.push({ output, socket });
+                changes.push({ output });
               }
             } else if (upperLock === 'F') {
               // Force unlock - clears lock regardless of owner
               this.lockOwners[output] = null;
-              changes.push({ output, socket });
+              changes.push({ output });
             } else {
               // Unknown lock state
               this.emit('command-received', {
@@ -404,13 +400,14 @@ class VideoHubServer extends EventEmitter {
     status += '\n';
 
     // Video output locks - client-specific (O = you own it, L = someone else, U = unlocked)
+    const statusClientIP = this._getClientIP(socket);
     status += 'VIDEO OUTPUT LOCKS:\n';
     for (let i = 0; i < this.outputs; i++) {
       const owner = this.lockOwners[i];
       let lockState;
       if (owner === null) {
         lockState = 'U';
-      } else if (owner === socket) {
+      } else if (owner === statusClientIP) {
         lockState = 'O';
       } else {
         lockState = 'L';
@@ -444,13 +441,14 @@ class VideoHubServer extends EventEmitter {
   broadcastLockChange(changes) {
     // Send client-specific lock status (O = you own it, L = someone else owns it, U = unlocked)
     for (const client of this.clients) {
+      const clientIP = this._getClientIP(client);
       let message = 'VIDEO OUTPUT LOCKS:\n';
       for (const change of changes) {
         const owner = this.lockOwners[change.output];
         let lockState;
         if (owner === null) {
           lockState = 'U';
-        } else if (owner === client) {
+        } else if (owner === clientIP) {
           lockState = 'O';
         } else {
           lockState = 'L';
@@ -517,15 +515,16 @@ class VideoHubServer extends EventEmitter {
   }
 
   setLock(output, lock) {
-    if (output >= 0 && output < this.outputs && ['O', 'U'].includes(lock)) {
+    if (output >= 0 && output < this.outputs && ['O', 'U', 'F'].includes(lock)) {
       if (lock === 'O') {
         // Use a special marker for UI-triggered locks
         this.lockOwners[output] = 'UI';
       } else {
+        // Both 'U' and 'F' clear the lock
         this.lockOwners[output] = null;
       }
       this.broadcastLockChange([{ output }]);
-      this.emit('locks-changed', [{ output, lock }]);
+      this.emit('locks-changed', [{ output, lock: lock === 'O' ? 'O' : 'U' }]);
       return true;
     }
     return false;
