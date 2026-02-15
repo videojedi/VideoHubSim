@@ -1661,14 +1661,18 @@
     }
 
     /* Grid dimming when protected */
-    .xy-grid-container.protected .xy-grid td,
-    .xy-grid-container.protected .xy-grid th:not(.corner) {
+    .xy-grid-container.protected .xy-grid td:not(.lock-cell):not(.output-index):not(.output-label) {
       opacity: 0.5;
       filter: grayscale(100%);
       pointer-events: none;
-    }
-    .xy-grid-container.protected .xy-grid td {
       cursor: not-allowed;
+    }
+    .xy-grid-container.protected .xy-grid td.lock-cell,
+    .xy-grid-container.protected .xy-grid td.output-index,
+    .xy-grid-container.protected .xy-grid td.output-label,
+    .xy-grid-container.protected .xy-grid th:not(.corner) {
+      filter: grayscale(100%);
+      pointer-events: none;
     }
 
     .xy-protect-bar {
@@ -2743,8 +2747,8 @@
     }
 
     function handleRowClick(e) {
-      // Don't handle if clicking the input field
-      if (e.target.classList.contains('label-input')) {
+      // Don't handle if clicking the input field or if an input is focused (text selection in progress)
+      if (e.target.classList.contains('label-input') || document.activeElement?.classList.contains('label-input')) {
         return;
       }
 
