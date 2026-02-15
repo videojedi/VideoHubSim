@@ -3820,7 +3820,7 @@
       if (changes.length > 0 && !isLargeBatch) {
         // Only update options for small batches - otherwise too expensive
         for (const change of changes) {
-          const index = change.index;
+          const index = change.index !== undefined ? change.index : change.input;
           const label = change.label;
           // Update just the visible routing options - use querySelectorAll more efficiently
           const options = routingGrid.querySelectorAll(`option[value="${index}"]`);
