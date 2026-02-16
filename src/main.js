@@ -204,11 +204,19 @@ function attachServerEvents(server) {
   server.on('input-labels-changed', (changes) => {
     sendToRenderer('simulator-input-labels-changed', changes);
     sendToRenderer('simulator-state-updated', server.getState());
+    // Persist labels to disk
+    const state = server.getState();
+    settings.inputLabels = state.inputLabels;
+    saveSettings();
   });
 
   server.on('output-labels-changed', (changes) => {
     sendToRenderer('simulator-output-labels-changed', changes);
     sendToRenderer('simulator-state-updated', server.getState());
+    // Persist labels to disk
+    const state = server.getState();
+    settings.outputLabels = state.outputLabels;
+    saveSettings();
   });
 
   server.on('command-received', (data) => {
@@ -305,7 +313,9 @@ function createServer(protocol, config = {}) {
       inputs: defaultConfig.inputs,
       outputs: defaultConfig.outputs,
       modelName: config.modelName || 'Blackmagic Smart Videohub 12x12',
-      friendlyName: config.friendlyName || 'VideoHub Simulator'
+      friendlyName: config.friendlyName || 'VideoHub Simulator',
+      inputLabels: settings.inputLabels || {},
+      outputLabels: settings.outputLabels || {}
     });
   }
 }
@@ -403,6 +413,23 @@ function setupIpcHandlers() {
       return controllerInstance.setOutputLabel(output, label);
     }
     return routerServer.setOutputLabel(output, label);
+  });
+
+  ipcMain.handle('reset-labels-to-defaults', async () => {
+    const state = routerServer.getState();
+    const defaults = routerServer.defaultInputLabels || [];
+    const defaultOutputs = routerServer.defaultOutputLabels || [];
+    for (let i = 0; i < state.inputs; i++) {
+      routerServer.setInputLabel(i, defaults[i] || `Input ${i + 1}`);
+    }
+    for (let i = 0; i < state.outputs; i++) {
+      routerServer.setOutputLabel(i, defaultOutputs[i] || `Output ${i + 1}`);
+    }
+    // Clear saved labels so defaults are used
+    delete settings.inputLabels;
+    delete settings.outputLabels;
+    saveSettings();
+    return true;
   });
 
   ipcMain.handle('set-lock', async (event, output, lock, target) => {

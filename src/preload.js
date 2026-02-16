@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('videoHub', {
   setAutoConnect: (enabled) => ipcRenderer.invoke('set-auto-connect', enabled),
   setAutoReconnect: (enabled) => ipcRenderer.invoke('set-auto-reconnect', enabled),
   setAutoProtect: (enabled) => ipcRenderer.invoke('set-auto-protect', enabled),
+  resetLabelsToDefaults: () => ipcRenderer.invoke('reset-labels-to-defaults'),
 
   // Router history
   getRouterHistory: () => ipcRenderer.invoke('get-router-history'),

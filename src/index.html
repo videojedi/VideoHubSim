@@ -457,11 +457,11 @@
     .xy-lock-btn.force-unlocking::after {
       content: '';
       position: absolute;
-      bottom: 0;
+      top: 0;
       left: 0;
       height: 3px;
       background: #ff6b6b;
-      border-radius: 0 0 3px 3px;
+      border-radius: 3px 3px 0 0;
       animation: forceUnlockProgress 2s linear forwards;
     }
 
@@ -1965,6 +1965,7 @@
             </label>
           </div>
           <button class="btn btn-primary" id="applyConfig" style="width: 100%; margin-top: 10px;">Apply Configuration</button>
+          <button class="btn" id="loadDemoLabels" style="width: 100%; margin-top: 6px;">Load Demo Labels</button>
         </div>
 
         <!-- Controller Configuration -->
@@ -4111,6 +4112,16 @@
       } else {
         log(`Failed to update configuration: ${result.error}`, 'error');
       }
+    });
+
+    document.getElementById('loadDemoLabels').addEventListener('click', async () => {
+      await window.videoHub.resetLabelsToDefaults();
+      const newState = await window.videoHub.getState(currentView);
+      if (newState) {
+        state = newState;
+        renderAll();
+      }
+      log('Demo labels loaded', 'success');
     });
 
     // View switching (just changes what data is displayed/edited)

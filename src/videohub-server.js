@@ -35,11 +35,13 @@ class VideoHubServer extends EventEmitter {
 
     this.inputLabels = {};
     this.outputLabels = {};
+    const savedInputLabels = options.inputLabels || {};
+    const savedOutputLabels = options.outputLabels || {};
     for (let i = 0; i < this.inputs; i++) {
-      this.inputLabels[i] = this.defaultInputLabels[i] || `Input ${i + 1}`;
+      this.inputLabels[i] = savedInputLabels[i] || this.defaultInputLabels[i] || `Input ${i + 1}`;
     }
     for (let i = 0; i < this.outputs; i++) {
-      this.outputLabels[i] = this.defaultOutputLabels[i] || `Output ${i + 1}`;
+      this.outputLabels[i] = savedOutputLabels[i] || this.defaultOutputLabels[i] || `Output ${i + 1}`;
     }
 
     // Initialize locks - stores the IP that owns each lock (null = unlocked, 'UI' = simulator UI)
