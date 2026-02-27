@@ -1,6 +1,6 @@
 {
   "name": "router-protocol-simulator",
-  "version": "2.5.1",
+  "version": "2.6.0",
   "description": "Simulate Blackmagic VideoHub and SW-P-08 broadcast routers",
   "main": "src/main.js",
   "scripts": {
@@ -40,6 +40,18 @@
     "mac": {
       "category": "public.app-category.utilities",
       "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "Router Protocol Simulator needs local network access to communicate with broadcast routers on your network.",
+        "NSBonjourServices": ["_blackmagic._tcp"]
+      },
+      "extraResources": [
+        { "from": "src/native/probe_local_network.node", "to": "probe_local_network.node" }
+      ],
+      "x64ArchFiles": "Contents/Resources/probe_local_network.node",
       "target": [
         {
           "target": "dmg",

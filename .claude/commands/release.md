@@ -69,3 +69,6 @@ Follow these steps in order:
   ### 10. Remove Old Builds
 - Delete any existing old build `.dmg` and `.exe` files from the `dist/` directory
 - Also remove any old `.blockmap` files from previous builds.
+
+### 11. Open folders
+- Open dist folder in finder

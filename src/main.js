@@ -22,6 +22,22 @@ let currentProtocol = 'videohub';
 let currentView = 'simulator';  // 'simulator' or 'controller' - just determines what's displayed
 let settings = {};
 
+// macOS Local Network TCC probe — triggers the system permission prompt
+let localNetworkProbed = false;
+function probeLocalNetwork() {
+  if (process.platform !== 'darwin' || localNetworkProbed) return;
+  localNetworkProbed = true;
+  try {
+    const probePath = path.join(app.isPackaged
+      ? process.resourcesPath
+      : path.join(__dirname, 'native'), 'probe_local_network.node');
+    const addon = require(probePath);
+    addon.probe('_blackmagic._tcp');
+  } catch (e) {
+    console.error('Local network probe failed:', e.message);
+  }
+}
+
 // Settings file path
 function getSettingsPath() {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -330,6 +346,7 @@ function setupIpcHandlers() {
   // Simulator controls
   ipcMain.handle('start-server', async () => {
     try {
+      probeLocalNetwork();
       const port = await routerServer.start();
       return { success: true, port };
     } catch (err) {
@@ -632,6 +649,7 @@ function setupIpcHandlers() {
   // Controller handlers
   ipcMain.handle('connect-router', async (event, config) => {
     try {
+      probeLocalNetwork();
       // Save controller settings
       settings.controllerHost = config.host;
       settings.controllerPort = config.port;

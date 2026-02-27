@@ -158,11 +158,41 @@
     /* Sidebar */
     .sidebar {
       width: 280px;
+      min-width: 280px;
       background: rgba(0, 0, 0, 0.2);
       border-right: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
+    }
+    .sidebar.collapsed {
+      width: 0;
+      min-width: 0;
+      overflow: hidden;
+      border-right: none;
+    }
+
+    .sidebar-toggle {
+      width: 20px;
+      min-width: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border: none;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      color: #666;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .sidebar-toggle:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .sidebar-toggle.collapsed svg {
+      transform: rotate(180deg);
     }
 
     .sidebar-section {
@@ -343,7 +373,8 @@
       background: rgba(0, 0, 0, 0.2);
       border-radius: 8px;
       padding: 20px;
-      overflow: auto;
+      display: flex;
+      flex-direction: column;
       flex: 1;
       min-height: 0;
     }
@@ -351,6 +382,9 @@
     .routing-grid {
       display: grid;
       gap: 10px;
+      overflow: auto;
+      flex: 1;
+      min-height: 0;
     }
 
     .routing-row {
@@ -767,6 +801,7 @@
       padding: 10px 15px;
       background: rgba(0, 0, 0, 0.2);
       border-radius: 6px;
+      flex-shrink: 0;
     }
 
     .level-selector.visible {
@@ -1074,6 +1109,7 @@
       border-radius: 6px;
       margin-bottom: 10px;
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
 
     .xy-salvos-bar.visible {
@@ -1338,6 +1374,7 @@
       border-collapse: separate;
       border-spacing: 0;
       font-size: 0.75rem;
+      user-select: none;
     }
 
     .xy-grid th, .xy-grid td {
@@ -1382,23 +1419,24 @@
     .xy-grid th.corner.minimap-cell {
       padding: 4px;
       vertical-align: top;
+      min-width: 158px;
+      overflow: hidden;
     }
 
     .xy-minimap {
       position: relative;
-      width: 100%;
-      height: 100%;
-      min-width: 80px;
-      min-height: 60px;
+      width: 150px;
+      height: 90px;
       background: rgba(0, 0, 0, 0.3);
       border-radius: 2px;
       cursor: pointer;
+      overflow: hidden;
     }
 
     .xy-minimap canvas {
       display: block;
-      width: 100%;
-      height: 100%;
+      width: 150px;
+      height: 90px;
     }
 
     .xy-minimap-viewport {
@@ -1428,6 +1466,7 @@
       vertical-align: bottom;
       padding-bottom: 5px;
       text-align: center;
+      top: 20px;
     }
 
     .xy-grid th.input-header span {
@@ -1448,6 +1487,10 @@
       font-weight: normal;
       text-align: center;
       padding: 2px 4px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #0d1117;
     }
 
     .xy-grid tr.index-row th {
@@ -1711,6 +1754,17 @@
       pointer-events: none;
     }
 
+    /* Routing list dimming when protected */
+    .routing-grid.protected .routing-row select {
+      opacity: 0.5;
+      filter: grayscale(100%);
+      pointer-events: none;
+    }
+    .routing-grid.protected .routing-row .lock-btn {
+      filter: grayscale(100%);
+      pointer-events: none;
+    }
+
     .xy-protect-bar {
       display: flex;
       align-items: center;
@@ -1720,6 +1774,60 @@
       background: rgba(0, 0, 0, 0.2);
       border-radius: 6px;
       flex-shrink: 0;
+    }
+
+    .xy-search-group {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .xy-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .xy-search {
+      width: 140px;
+      padding: 4px 22px 4px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #e0e0e0;
+      font-size: 0.75rem;
+      outline: none;
+    }
+    .xy-search:focus {
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .xy-search::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .xy-search-clear {
+      position: absolute;
+      right: 3px;
+      width: 16px;
+      height: 16px;
+      border: none;
+      background: none;
+      color: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      padding: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      border-radius: 2px;
+    }
+    .xy-search-clear:hover {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .xy-search-wrap.has-value .xy-search-clear {
+      display: flex;
     }
 
     .xy-toolbar-btn {
@@ -1898,7 +2006,7 @@
     </header>
 
     <div class="main-content">
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar">
         <div class="sidebar-section">
           <h3>View</h3>
           <div class="mode-selector">
@@ -2030,6 +2138,10 @@
         </div>
       </aside>
 
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+
       <main class="router-panel">
         <div class="tabs">
           <button class="tab active" data-tab="routing">Routing Matrix</button>
@@ -2043,6 +2155,19 @@
             <label>Matrix Level:</label>
             <select id="levelSelect"></select>
             <span class="level-indicator" id="levelIndicator">Level 1: Video</span>
+          </div>
+          <div class="xy-protect-bar">
+            <div class="protect-toggle" id="routingProtectBtn" title="Routing enabled — click to protect">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <span class="toggle-label">Enabled</span>
+            </div>
+            <button class="xy-toolbar-btn" id="routingUndoBtn" title="Undo last route change" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12.5 8c-2.65 0-5.05 1.04-6.83 2.73L2 7.07V16h8.93l-3.71-3.71C8.74 11.07 10.53 10.25 12.5 10.25c3.59 0 6.6 2.38 7.6 5.65l2.37-.78C21.12 11.23 17.17 8 12.5 8z"/></svg>
+              <span>Undo</span>
+            </button>
+          </div>
+          <div class="xy-salvos-bar" id="routingSalvosBar">
+            <!-- Salvo recall buttons will be generated here -->
           </div>
           <div class="routing-grid" id="routingGrid">
             <!-- Routing rows will be generated here -->
@@ -2094,6 +2219,16 @@
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12.5 8c-2.65 0-5.05 1.04-6.83 2.73L2 7.07V16h8.93l-3.71-3.71C8.74 11.07 10.53 10.25 12.5 10.25c3.59 0 6.6 2.38 7.6 5.65l2.37-.78C21.12 11.23 17.17 8 12.5 8z"/></svg>
               <span>Undo</span>
             </button>
+            <div class="xy-search-group">
+              <div class="xy-search-wrap">
+                <input type="text" class="xy-search" id="xySearchSrc" placeholder="Filter sources...">
+                <button class="xy-search-clear" data-for="xySearchSrc" title="Clear">&times;</button>
+              </div>
+              <div class="xy-search-wrap">
+                <input type="text" class="xy-search" id="xySearchDst" placeholder="Filter destinations...">
+                <button class="xy-search-clear" data-for="xySearchDst" title="Clear">&times;</button>
+              </div>
+            </div>
           </div>
           <div class="xy-salvos-bar" id="xySalvosBar">
             <!-- Salvo recall buttons will be generated here -->
@@ -2447,15 +2582,16 @@
     // Protect mode
     function setProtectMode(enabled) {
       xyProtectMode = enabled;
-      const toggle = document.getElementById('xyProtectBtn');
-      if (toggle) {
+      // Sync both protect toggles (XY and Routing Matrix tabs)
+      document.querySelectorAll('#xyProtectBtn, #routingProtectBtn').forEach(toggle => {
         toggle.classList.toggle('armed', xyProtectMode);
         toggle.querySelector('.toggle-label').textContent = xyProtectMode ? 'Disabled' : 'Enabled';
         toggle.title = xyProtectMode
           ? 'Routing is disabled — click to enable'
           : 'Routing enabled — click to protect';
-      }
+      });
       document.getElementById('xyGridContainer')?.classList.toggle('protected', xyProtectMode);
+      document.getElementById('routingGrid')?.classList.toggle('protected', xyProtectMode);
     }
 
     function resetAutoProtectTimer() {
@@ -2484,21 +2620,23 @@
     }
 
     function updateUndoButton() {
-      const btn = document.getElementById('xyUndoBtn');
-      if (!btn) return;
       const hasHistory = undoHistory.length > 0;
-      btn.disabled = !hasHistory;
       const modKey = navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl';
+      let title;
       if (hasHistory) {
         const last = undoHistory[undoHistory.length - 1];
         const outLabel = state.outputLabels?.[last.output] || `Output ${last.output + 1}`;
         const prevLabel = last.previousInput !== undefined
           ? (state.inputLabels?.[last.previousInput] || `Input ${last.previousInput + 1}`)
           : 'None';
-        btn.title = `Undo: restore ${outLabel} → ${prevLabel} (${modKey}+Z)`;
+        title = `Undo: restore ${outLabel} → ${prevLabel} (${modKey}+Z)`;
       } else {
-        btn.title = `Undo last route change (${modKey}+Z)`;
+        title = `Undo last route change (${modKey}+Z)`;
       }
+      document.querySelectorAll('#xyUndoBtn, #routingUndoBtn').forEach(btn => {
+        btn.disabled = !hasHistory;
+        btn.title = title;
+      });
     }
 
     async function performUndo() {
@@ -3340,35 +3478,67 @@
 
       const ctx = minimapCanvas.getContext('2d');
       const routing = getCurrentRouting();
-      const rect = minimap.getBoundingClientRect();
-      const width = Math.floor(rect.width);
-      const height = Math.floor(rect.height);
+      const canvasW = 150;
+      const canvasH = 90;
 
-      if (width <= 0 || height <= 0) return;
-
-      minimapCanvas.width = width;
-      minimapCanvas.height = height;
+      minimapCanvas.width = canvasW;
+      minimapCanvas.height = canvasH;
 
       // Clear canvas
-      ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, canvasW, canvasH);
 
-      // Calculate dot size and spacing
-      const dotSpacingX = width / state.inputs;
-      const dotSpacingY = height / state.outputs;
-      const dotSize = Math.max(1, Math.min(dotSpacingX, dotSpacingY) * 0.6);
+      // Build filtered index arrays
+      const srcQuery = (document.getElementById('xySearchSrc')?.value || '').toLowerCase().trim();
+      const dstQuery = (document.getElementById('xySearchDst')?.value || '').toLowerCase().trim();
 
-      // Draw crosspoints
-      ctx.fillStyle = '#2ed573';
+      const visibleInputs = [];
+      for (let i = 0; i < state.inputs; i++) {
+        if (srcQuery) {
+          const num = String(i + 1);
+          const label = (state.inputLabels[i] || `Input ${i + 1}`).toLowerCase();
+          if (!num.includes(srcQuery) && !label.includes(srcQuery)) continue;
+        }
+        visibleInputs.push(i);
+      }
+
+      const visibleOutputs = [];
       for (let o = 0; o < state.outputs; o++) {
+        if (dstQuery) {
+          const num = String(o + 1);
+          const label = (state.outputLabels[o] || `Output ${o + 1}`).toLowerCase();
+          if (!num.includes(dstQuery) && !label.includes(dstQuery)) continue;
+        }
+        visibleOutputs.push(o);
+      }
+
+      if (visibleInputs.length === 0 || visibleOutputs.length === 0) return;
+
+      // Build reverse lookup: original input index → filtered position
+      const inputPosMap = new Map();
+      visibleInputs.forEach((idx, pos) => inputPosMap.set(idx, pos));
+
+      // Always fill the full canvas — no letterboxing
+      const dotSpacingX = canvasW / visibleInputs.length;
+      const dotSpacingY = canvasH / visibleOutputs.length;
+      const dotSize = Math.max(1.5, Math.min(dotSpacingX, dotSpacingY) * 0.6);
+
+      // Draw crosspoints for visible routes only
+      ctx.fillStyle = '#2ed573';
+      visibleOutputs.forEach((o, rowPos) => {
         const input = routing[o];
-        if (input !== undefined && input >= 0 && input < state.inputs) {
-          const x = (input + 0.5) * dotSpacingX;
-          const y = (o + 0.5) * dotSpacingY;
+        if (input !== undefined && inputPosMap.has(input)) {
+          const colPos = inputPosMap.get(input);
+          const x = (colPos + 0.5) * dotSpacingX;
+          const y = (rowPos + 0.5) * dotSpacingY;
           ctx.beginPath();
           ctx.arc(x, y, dotSize / 2, 0, Math.PI * 2);
           ctx.fill();
         }
-      }
+      });
+
+      // Store visible counts for viewport indicator
+      minimap._visibleInputs = visibleInputs.length;
+      minimap._visibleOutputs = visibleOutputs.length;
     }
 
     function renderXYGrid() {
@@ -3690,76 +3860,65 @@
       const minimapViewport = document.getElementById('xyMinimapViewport');
 
       if (minimap && minimapCanvas && minimapViewport) {
-        function updateViewportIndicator() {
-          // Get the scrollable area dimensions
-          const scrollWidth = gridContainer.scrollWidth;
-          const scrollHeight = gridContainer.scrollHeight;
-          const clientWidth = gridContainer.clientWidth;
-          const clientHeight = gridContainer.clientHeight;
+        // Cache header dimensions (recalculated on grid render, not on scroll)
+        let cachedHeaderWidth = 0;
+        let cachedHeaderHeight = 0;
+        function cacheHeaderDimensions() {
+          const firstCrosspoint = xyGrid.querySelector('.crosspoint');
+          if (!firstCrosspoint) return;
+          const gridRect = xyGrid.getBoundingClientRect();
+          const cpRect = firstCrosspoint.getBoundingClientRect();
+          cachedHeaderWidth = cpRect.left - gridRect.left + gridContainer.scrollLeft;
+          cachedHeaderHeight = cpRect.top - gridRect.top + gridContainer.scrollTop;
+        }
 
-          // Get current scroll position
+        function updateViewportIndicator() {
+          const canvasW = 150;
+          const canvasH = 90;
+
+          // Total scrollable crosspoint area
+          const crosspointAreaWidth = gridContainer.scrollWidth - cachedHeaderWidth;
+          const crosspointAreaHeight = gridContainer.scrollHeight - cachedHeaderHeight;
+          if (crosspointAreaWidth <= 0 || crosspointAreaHeight <= 0) return;
+
+          // Visible crosspoint area
+          const visibleWidth = gridContainer.clientWidth - cachedHeaderWidth;
+          const visibleHeight = gridContainer.clientHeight - cachedHeaderHeight;
+
           const scrollLeft = gridContainer.scrollLeft;
           const scrollTop = gridContainer.scrollTop;
 
-          // Calculate header offsets (sticky columns/rows)
-          const firstCrosspoint = xyGrid.querySelector('.crosspoint');
-          if (!firstCrosspoint) return;
+          const vpLeft = (scrollLeft / crosspointAreaWidth) * canvasW;
+          const vpTop = (scrollTop / crosspointAreaHeight) * canvasH;
+          const vpWidth = (visibleWidth / crosspointAreaWidth) * canvasW;
+          const vpHeight = (visibleHeight / crosspointAreaHeight) * canvasH;
 
-          const gridRect = xyGrid.getBoundingClientRect();
-          const crosspointRect = firstCrosspoint.getBoundingClientRect();
-          const headerWidth = crosspointRect.left - gridRect.left;
-          const headerHeight = crosspointRect.top - gridRect.top;
-
-          // Calculate the crosspoint area dimensions
-          const crosspointAreaWidth = scrollWidth - headerWidth;
-          const crosspointAreaHeight = scrollHeight - headerHeight;
-
-          // Minimap dimensions
-          const minimapRect = minimap.getBoundingClientRect();
-          const minimapWidth = minimapRect.width;
-          const minimapHeight = minimapRect.height;
-
-          // Calculate viewport box position and size
-          const visibleWidth = clientWidth - headerWidth;
-          const visibleHeight = clientHeight - headerHeight;
-
-          const vpLeft = (scrollLeft / crosspointAreaWidth) * minimapWidth;
-          const vpTop = (scrollTop / crosspointAreaHeight) * minimapHeight;
-          const vpWidth = (visibleWidth / crosspointAreaWidth) * minimapWidth;
-          const vpHeight = (visibleHeight / crosspointAreaHeight) * minimapHeight;
-
-          // Apply to viewport indicator
           minimapViewport.style.left = Math.max(0, vpLeft) + 'px';
           minimapViewport.style.top = Math.max(0, vpTop) + 'px';
-          minimapViewport.style.width = Math.min(vpWidth, minimapWidth - vpLeft) + 'px';
-          minimapViewport.style.height = Math.min(vpHeight, minimapHeight - vpTop) + 'px';
+          minimapViewport.style.width = Math.min(vpWidth, canvasW - vpLeft) + 'px';
+          minimapViewport.style.height = Math.min(vpHeight, canvasH - vpTop) + 'px';
 
           // Hide viewport if showing entire grid
-          const showViewport = vpWidth < minimapWidth * 0.95 || vpHeight < minimapHeight * 0.95;
+          const showViewport = vpWidth < canvasW * 0.95 || vpHeight < canvasH * 0.95;
           minimapViewport.style.display = showViewport ? 'block' : 'none';
         }
 
         // Click on minimap to scroll
         function scrollToMinimapPosition(clientX, clientY) {
+          const canvasW = 150;
+          const canvasH = 90;
+
           const minimapRect = minimap.getBoundingClientRect();
-          const relX = (clientX - minimapRect.left) / minimapRect.width;
-          const relY = (clientY - minimapRect.top) / minimapRect.height;
+          const relX = (clientX - minimapRect.left) / canvasW;
+          const relY = (clientY - minimapRect.top) / canvasH;
 
-          // Calculate header offsets
-          const firstCrosspoint = xyGrid.querySelector('.crosspoint');
-          if (!firstCrosspoint) return;
+          if (relX < 0 || relX > 1 || relY < 0 || relY > 1) return;
 
-          const gridRect = xyGrid.getBoundingClientRect();
-          const crosspointRect = firstCrosspoint.getBoundingClientRect();
-          const headerWidth = crosspointRect.left - gridRect.left;
-          const headerHeight = crosspointRect.top - gridRect.top;
+          const crosspointAreaWidth = gridContainer.scrollWidth - cachedHeaderWidth;
+          const crosspointAreaHeight = gridContainer.scrollHeight - cachedHeaderHeight;
 
-          const crosspointAreaWidth = gridContainer.scrollWidth - headerWidth;
-          const crosspointAreaHeight = gridContainer.scrollHeight - headerHeight;
-
-          // Center the viewport on click position
-          const visibleWidth = gridContainer.clientWidth - headerWidth;
-          const visibleHeight = gridContainer.clientHeight - headerHeight;
+          const visibleWidth = gridContainer.clientWidth - cachedHeaderWidth;
+          const visibleHeight = gridContainer.clientHeight - cachedHeaderHeight;
 
           const targetScrollLeft = (relX * crosspointAreaWidth) - (visibleWidth / 2);
           const targetScrollTop = (relY * crosspointAreaHeight) - (visibleHeight / 2);
@@ -3786,12 +3945,81 @@
           minimapDragging = false;
         });
 
+        // Expose for use by applyXYFilter
+        minimap._cacheHeaders = cacheHeaderDimensions;
+        minimap._updateViewport = updateViewportIndicator;
+
         // Update viewport on scroll
         gridContainer.addEventListener('scroll', updateViewportIndicator);
 
         // Initial render
         updateMinimap();
-        setTimeout(updateViewportIndicator, 50);
+        setTimeout(() => { cacheHeaderDimensions(); updateViewportIndicator(); }, 50);
+        applyXYFilter();
+      }
+    }
+
+    function applyXYFilter() {
+      const srcQuery = (document.getElementById('xySearchSrc')?.value || '').toLowerCase().trim();
+      const dstQuery = (document.getElementById('xySearchDst')?.value || '').toLowerCase().trim();
+      const grid = document.getElementById('xyGrid');
+      if (!grid) return;
+
+      // Filter columns (sources/inputs)
+      const indexRow = grid.querySelector('tr.index-row');
+      const labelRow = indexRow?.nextElementSibling;
+      const indexCells = indexRow ? Array.from(indexRow.querySelectorAll('th.input-index')) : [];
+      const labelCells = labelRow ? Array.from(labelRow.querySelectorAll('th.input-header')) : [];
+
+      // Build set of visible input indices
+      const visibleInputs = new Set();
+      for (let i = 0; i < state.inputs; i++) {
+        if (!srcQuery) {
+          visibleInputs.add(i);
+          continue;
+        }
+        const num = String(i + 1);
+        const label = (state.inputLabels[i] || `Input ${i + 1}`).toLowerCase();
+        if (num.includes(srcQuery) || label.includes(srcQuery)) {
+          visibleInputs.add(i);
+        }
+      }
+
+      // Show/hide column headers
+      indexCells.forEach((cell, i) => {
+        cell.style.display = visibleInputs.has(i) ? '' : 'none';
+      });
+      labelCells.forEach((cell, i) => {
+        cell.style.display = visibleInputs.has(i) ? '' : 'none';
+      });
+
+      // Filter rows (destinations/outputs) and crosspoint cells
+      const bodyRows = grid.querySelectorAll('tbody tr');
+      bodyRows.forEach(row => {
+        const output = parseInt(row.dataset.output);
+        let rowVisible = true;
+        if (dstQuery) {
+          const num = String(output + 1);
+          const label = (state.outputLabels[output] || `Output ${output + 1}`).toLowerCase();
+          rowVisible = num.includes(dstQuery) || label.includes(dstQuery);
+        }
+        row.style.display = rowVisible ? '' : 'none';
+
+        // Show/hide crosspoint cells by column
+        if (rowVisible) {
+          const crosspoints = row.querySelectorAll('td.crosspoint');
+          crosspoints.forEach(cell => {
+            const input = parseInt(cell.dataset.input);
+            cell.style.display = visibleInputs.has(input) ? '' : 'none';
+          });
+        }
+      });
+
+      // Update minimap and header cache
+      if (typeof updateMinimap === 'function') updateMinimap();
+      const mm = document.getElementById('xyMinimap');
+      if (mm?._cacheHeaders) {
+        setTimeout(() => { mm._cacheHeaders(); if (mm._updateViewport) mm._updateViewport(); }, 0);
       }
     }
 
@@ -4053,10 +4281,13 @@
         tab.classList.add('active');
 
         const tabName = tab.dataset.tab;
-        document.getElementById('routingPanel').style.display = tabName === 'routing' ? 'block' : 'none';
+        document.getElementById('routingPanel').style.display = tabName === 'routing' ? 'flex' : 'none';
         document.getElementById('labelsPanel').classList.toggle('active', tabName === 'labels');
         document.getElementById('xyPanel').classList.toggle('active', tabName === 'xy');
         document.getElementById('salvosPanel').classList.toggle('active', tabName === 'salvos');
+        if (tabName === 'routing') {
+          renderXYSalvosBar();
+        }
         if (tabName === 'xy') {
           renderXYGrid();
         }
@@ -4614,35 +4845,34 @@
     ];
 
     function renderXYSalvosBar() {
-      const bar = document.getElementById('xySalvosBar');
-      if (!bar) return;
+      document.querySelectorAll('#xySalvosBar, #routingSalvosBar').forEach(bar => {
+        bar.innerHTML = '';
 
-      bar.innerHTML = '';
-
-      if (!salvos || salvos.length === 0) {
-        bar.classList.remove('visible');
-        return;
-      }
-
-      bar.classList.add('visible');
-
-      const label = document.createElement('span');
-      label.className = 'salvos-label';
-      label.textContent = 'Salvos:';
-      bar.appendChild(label);
-
-      salvos.forEach(salvo => {
-        const btn = document.createElement('button');
-        btn.className = 'salvo-recall-btn';
-        btn.textContent = salvo.name;
-        btn.title = `Recall ${salvo.routes?.length || 0} routes`;
-        if (salvo.color) {
-          btn.style.borderColor = salvo.color;
-          btn.style.color = salvo.color;
-          btn.style.background = salvo.color + '20';
+        if (!salvos || salvos.length === 0) {
+          bar.classList.remove('visible');
+          return;
         }
-        btn.addEventListener('click', () => recallSalvo(salvo.id));
-        bar.appendChild(btn);
+
+        bar.classList.add('visible');
+
+        const label = document.createElement('span');
+        label.className = 'salvos-label';
+        label.textContent = 'Salvos:';
+        bar.appendChild(label);
+
+        salvos.forEach(salvo => {
+          const btn = document.createElement('button');
+          btn.className = 'salvo-recall-btn';
+          btn.textContent = salvo.name;
+          btn.title = `Recall ${salvo.routes?.length || 0} routes`;
+          if (salvo.color) {
+            btn.style.borderColor = salvo.color;
+            btn.style.color = salvo.color;
+            btn.style.background = salvo.color + '20';
+          }
+          btn.addEventListener('click', () => recallSalvo(salvo.id));
+          bar.appendChild(btn);
+        });
       });
     }
 
@@ -5152,7 +5382,7 @@
       }
     });
 
-    document.getElementById('xyProtectBtn').addEventListener('click', () => {
+    function handleProtectToggle() {
       setProtectMode(!xyProtectMode);
       if (xyProtectMode) {
         log('Routing disabled', 'info');
@@ -5161,19 +5391,58 @@
         log('Routing enabled', 'info');
         resetAutoProtectTimer();
       }
-    });
+    }
+
+    document.getElementById('xyProtectBtn').addEventListener('click', handleProtectToggle);
+    document.getElementById('routingProtectBtn').addEventListener('click', handleProtectToggle);
 
     document.getElementById('xyUndoBtn').addEventListener('click', performUndo);
+    document.getElementById('routingUndoBtn').addEventListener('click', performUndo);
+
+    // XY grid search/filter
+    document.querySelectorAll('.xy-search').forEach(input => {
+      input.addEventListener('input', () => {
+        input.closest('.xy-search-wrap')?.classList.toggle('has-value', input.value.length > 0);
+        applyXYFilter();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          input.value = '';
+          input.closest('.xy-search-wrap')?.classList.remove('has-value');
+          applyXYFilter();
+          input.blur();
+        }
+      });
+    });
+    document.querySelectorAll('.xy-search-clear').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.for);
+        if (input) {
+          input.value = '';
+          input.closest('.xy-search-wrap')?.classList.remove('has-value');
+          applyXYFilter();
+          input.focus();
+        }
+      });
+    });
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         const activeTab = document.querySelector('.tab.active')?.dataset.tab;
-        if (activeTab !== 'xy') return;
+        if (activeTab !== 'xy' && activeTab !== 'routing') return;
         const tag = document.activeElement?.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
         e.preventDefault();
         performUndo();
       }
+    });
+
+    // Sidebar toggle
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.getElementById('sidebarToggle');
+      sidebar.classList.toggle('collapsed');
+      toggle.classList.toggle('collapsed');
     });
 
     // Log panel toggle

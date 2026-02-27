@@ -104,7 +104,16 @@
       "Bash(git -C /Users/richard/Documents/VideoHubSim log --oneline -10)",
       "Bash(git -C /Users/richard/Documents/VideoHubSim status --short)",
       "Bash(git -C /Users/richard/Documents/VideoHubSim add package.json src/index.html src/main.js src/preload.js .claude/commands/release.md .claude/settings.local.json .gitignore)",
-      "Bash(git -C /Users/richard/Documents/VideoHubSim commit -m \"Release v2.4.0\")"
+      "Bash(git -C /Users/richard/Documents/VideoHubSim commit -m \"Release v2.4.0\")",
+      "Bash(git -C /Users/richard/Documents/VideoHubSim push)",
+      "Bash(git -C /Users/richard/Documents/VideoHubSim diff v2.3.1..HEAD --stat)",
+      "Bash(git -C /Users/richard/Documents/TieLineManager status --short)",
+      "Bash(git -C /Users/richard/Documents/TieLineManager add package.json src/index.html src/main.js src/preload.js)",
+      "Bash(git -C /Users/richard/Documents/TieLineManager commit -m \"Release v1.4.0\")",
+      "Bash(git -C /Users/richard/Documents/TieLineManager push)",
+      "Bash(git -C /Users/richard/Documents/TieLineManager log --oneline v1.3.0..HEAD)",
+      "Bash(open:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
