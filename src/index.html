@@ -639,6 +639,25 @@
       max-width: 300px;
     }
 
+    .label-color-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      flex-shrink: 0;
+      background: transparent;
+      position: relative;
+    }
+
+    .label-color-btn:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .label-color-btn.has-color {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
     /* Labels Toolbar */
     .labels-toolbar {
       display: flex;
@@ -764,11 +783,36 @@
       margin: 4px 0;
     }
 
+    .context-menu-colors {
+      display: flex;
+      gap: 3px;
+    }
+
+    .context-menu-color-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .context-menu-color-swatch:hover {
+      border-color: #fff;
+      transform: scale(1.2);
+    }
+
     /* Tabs */
     .tabs {
       display: flex;
       gap: 5px;
       margin-bottom: 20px;
+      flex-shrink: 0;
+      align-items: center;
+    }
+
+    .tabs-left {
+      display: flex;
+      gap: 5px;
       flex-shrink: 0;
     }
 
@@ -790,6 +834,203 @@
     .tab.active {
       background: rgba(0, 0, 0, 0.3);
       color: #fff;
+    }
+
+    /* BPS Buttons */
+    .bps-container {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+      overflow-x: auto;
+      overflow-y: hidden;
+      align-items: center;
+      min-width: 0;
+      flex-shrink: 1;
+      padding: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    }
+    .bps-container::-webkit-scrollbar {
+      height: 3px;
+    }
+    .bps-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .bps-container::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+    }
+
+    .bps-btn {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 6px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      color: #ccc;
+      cursor: pointer;
+      font-size: 0.55rem;
+      line-height: 1.1;
+      padding: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .bps-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.4);
+    }
+    .bps-btn.active {
+      border-color: #2ed573;
+      box-shadow: 0 0 6px rgba(46, 213, 115, 0.4);
+    }
+    .bps-btn.dragging {
+      opacity: 0.4;
+    }
+    .bps-btn.drag-over {
+      border-color: #74b9ff;
+    }
+
+    .bps-add-btn {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 6px;
+      border: 2px dashed rgba(255,255,255,0.2);
+      background: transparent;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .bps-add-btn:hover {
+      border-color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .bps-edit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .bps-edit-dialog {
+      background: #2d3436;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 20px;
+      width: 320px;
+    }
+
+    .bps-edit-dialog h3 {
+      margin: 0 0 15px 0;
+      color: #dfe6e9;
+      font-size: 1rem;
+    }
+
+    .bps-edit-dialog label {
+      display: block;
+      color: #b2bec3;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+    }
+
+    .bps-edit-dialog select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      background: rgba(0,0,0,0.3);
+      color: #e0e0e0;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .bps-color-swatches {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .bps-color-swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+    }
+    .bps-color-swatch:hover {
+      transform: scale(1.15);
+    }
+    .bps-color-swatch.selected {
+      border-color: #fff;
+    }
+    .bps-color-swatch.no-color {
+      background: rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .bps-color-swatch.no-color::after {
+      content: '×';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .bps-edit-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .bps-edit-buttons button {
+      flex: 1;
+      padding: 7px 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 5px;
+      background: rgba(255,255,255,0.05);
+      color: #dfe6e9;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .bps-edit-buttons button:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .bps-edit-buttons button.bps-save {
+      background: rgba(46, 213, 115, 0.2);
+      border-color: #2ed573;
+      color: #2ed573;
+    }
+    .bps-edit-buttons button.bps-save:hover {
+      background: rgba(46, 213, 115, 0.3);
+    }
+    .bps-edit-buttons button.bps-delete {
+      background: rgba(255, 107, 107, 0.2);
+      border-color: #ff6b6b;
+      color: #ff6b6b;
+    }
+    .bps-edit-buttons button.bps-delete:hover {
+      background: rgba(255, 107, 107, 0.3);
     }
 
     /* Level Selector */
@@ -1789,13 +2030,13 @@
     }
 
     .xy-search {
-      width: 140px;
-      padding: 4px 22px 4px 8px;
+      width: 170px;
+      padding: 6px 24px 6px 10px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 4px;
       background: rgba(255, 255, 255, 0.05);
       color: #e0e0e0;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       outline: none;
     }
     .xy-search:focus {
@@ -2144,10 +2385,15 @@
 
       <main class="router-panel">
         <div class="tabs">
-          <button class="tab active" data-tab="routing">Routing Matrix</button>
-          <button class="tab" data-tab="xy">XY</button>
-          <button class="tab" data-tab="labels">Labels</button>
-          <button class="tab" data-tab="salvos">Salvos</button>
+          <div class="tabs-left">
+            <button class="tab active" data-tab="routing">Routing Matrix</button>
+            <button class="tab" data-tab="xy">XY</button>
+            <button class="tab" data-tab="labels">Labels</button>
+            <button class="tab" data-tab="salvos">Salvos</button>
+          </div>
+          <div class="bps-container" id="bpsContainer">
+            <button class="bps-add-btn" id="bpsAddBtn" title="Add BPS button">+</button>
+          </div>
         </div>
 
         <div id="routingPanel" class="matrix-container">
@@ -2312,6 +2558,14 @@
         Fill and Increment
       </div>
       <div class="context-menu-separator"></div>
+      <div class="context-menu-item" data-action="set-color" data-color-action="true">
+        Set Colour
+        <span class="shortcut" style="display:flex;gap:2px;margin-left:auto"></span>
+      </div>
+      <div class="context-menu-item" data-action="clear-color">
+        Clear Colour
+      </div>
+      <div class="context-menu-separator"></div>
       <div class="context-menu-item" data-action="select-all">
         Select All <span class="shortcut" data-key="A"></span>
       </div>
@@ -2348,6 +2602,9 @@
     const AUTO_PROTECT_DELAY = 5 * 60 * 1000; // 5 minutes
     const UNDO_HISTORY_MAX = 50;
     let undoHistory = [];
+
+    // Label colours (persisted separately from state)
+    let labelColors = { inputLabelColors: {}, outputLabelColors: {} };
 
     // Lock icons (SVG)
     const LOCK_ICON_LOCKED = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
@@ -2750,6 +3007,8 @@
         const outputLabel = document.createElement('div');
         outputLabel.className = 'output-label';
         outputLabel.textContent = state.outputLabels[o] || `Output ${o + 1}`;
+        const outColor = getLabelColor('output', o);
+        if (outColor) outputLabel.style.color = outColor;
 
         const arrow = document.createElement('div');
         arrow.className = 'routing-arrow';
@@ -2769,15 +3028,18 @@
           select.disabled = true;
         }
 
+        let selectedInputColor = '';
         for (let i = 0; i < state.inputs; i++) {
           const option = document.createElement('option');
           option.value = i;
           option.textContent = `${i + 1}: ${state.inputLabels[i] || `Input ${i + 1}`}`;
           if (routing[o] === i) {
             option.selected = true;
+            selectedInputColor = getLabelColor('input', i) || '';
           }
           select.appendChild(option);
         }
+        if (selectedInputColor) select.style.color = selectedInputColor;
 
         select.addEventListener('change', async (e) => {
           if (xyProtectMode) {
@@ -2787,6 +3049,8 @@
           }
           const output = parseInt(e.target.dataset.output);
           const input = parseInt(e.target.value);
+          const selColor = getLabelColor('input', input);
+          e.target.style.color = selColor || '';
           const routing = getCurrentRouting();
           const previousInput = routing?.[output];
           await window.videoHub.setRoute(output, input, currentLevel, currentView);
@@ -2818,6 +3082,15 @@
         row.appendChild(lockBtn);
         routingGrid.appendChild(row);
       }
+    }
+
+    async function loadLabelColors() {
+      labelColors = await window.videoHub.getLabelColors();
+    }
+
+    function getLabelColor(type, index) {
+      const colors = type === 'input' ? labelColors.inputLabelColors : labelColors.outputLabelColors;
+      return colors?.[index] || null;
     }
 
     function renderInputLabels() {
@@ -2895,6 +3168,25 @@
         });
       });
 
+      // Apply label colour to input text
+      const currentColor = getLabelColor(type, index);
+      if (currentColor) {
+        input.style.color = currentColor;
+      }
+
+      // Colour swatch button
+      const colorBtn = document.createElement('div');
+      colorBtn.className = 'label-color-btn';
+      if (currentColor) {
+        colorBtn.style.background = currentColor;
+        colorBtn.classList.add('has-color');
+      }
+      colorBtn.title = currentColor ? `Colour: ${currentColor} (click to change)` : 'Set colour';
+      colorBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showLabelColorPicker(colorBtn, type, index);
+      });
+
       // Row click for selection (but not on input field)
       row.addEventListener('click', handleRowClick);
       row.addEventListener('contextmenu', handleRowContextMenu);
@@ -2902,6 +3194,7 @@
       row.appendChild(rowNum);
       row.appendChild(rowLabel);
       row.appendChild(input);
+      row.appendChild(colorBtn);
 
       return row;
     }
@@ -3104,6 +3397,28 @@
       menu.querySelector('[data-action="copy"]').classList.toggle('disabled', !hasSelection);
       menu.querySelector('[data-action="paste"]').classList.toggle('disabled', !hasClipboard || !editingAllowed);
       menu.querySelector('[data-action="fill-increment"]').classList.toggle('disabled', !multipleSelected || !editingAllowed);
+      menu.querySelector('[data-action="clear-color"]').classList.toggle('disabled', !hasSelection);
+
+      // Populate colour swatches in the "Set Colour" row
+      const setColorItem = menu.querySelector('[data-action="set-color"]');
+      setColorItem.classList.toggle('disabled', !hasSelection);
+      const swatchContainer = setColorItem.querySelector('.shortcut');
+      swatchContainer.innerHTML = '';
+      if (hasSelection) {
+        SALVO_COLORS.forEach(c => {
+          const swatch = document.createElement('span');
+          swatch.className = 'context-menu-color-swatch';
+          swatch.style.background = c.value;
+          swatch.dataset.colorValue = c.value;
+          swatch.title = c.name;
+          swatch.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await setLabelColorForSelection(type, c.value);
+            hideContextMenu();
+          });
+          swatchContainer.appendChild(swatch);
+        });
+      }
 
       // Position menu
       menu.style.left = `${x}px`;
@@ -3290,6 +3605,77 @@
       }
 
       return labels;
+    }
+
+    // Label colour picker popup
+    function showLabelColorPicker(anchor, type, index) {
+      // Remove any existing picker
+      document.querySelectorAll('.label-color-popup').forEach(p => p.remove());
+
+      const popup = document.createElement('div');
+      popup.className = 'label-color-popup';
+      popup.style.cssText = 'position:fixed;z-index:10001;background:#2d3436;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:8px;display:flex;gap:4px;flex-wrap:wrap;width:140px;box-shadow:0 4px 20px rgba(0,0,0,0.5)';
+
+      const currentColor = getLabelColor(type, index);
+
+      SALVO_COLORS.forEach(c => {
+        const swatch = document.createElement('div');
+        swatch.style.cssText = `width:22px;height:22px;border-radius:4px;cursor:pointer;background:${c.value};border:2px solid ${currentColor === c.value ? '#fff' : 'rgba(255,255,255,0.2)'}`;
+        swatch.title = c.name;
+        swatch.addEventListener('click', async () => {
+          await window.videoHub.setLabelColor(type, index, c.value);
+          labelColors = await window.videoHub.getLabelColors();
+          renderAll();
+          popup.remove();
+        });
+        popup.appendChild(swatch);
+      });
+
+      // Clear swatch
+      const clearSwatch = document.createElement('div');
+      clearSwatch.style.cssText = 'width:22px;height:22px;border-radius:4px;cursor:pointer;border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;color:#888;font-size:0.7rem';
+      clearSwatch.textContent = '✕';
+      clearSwatch.title = 'Clear colour';
+      clearSwatch.addEventListener('click', async () => {
+        await window.videoHub.setLabelColor(type, index, null);
+        labelColors = await window.videoHub.getLabelColors();
+        renderAll();
+        popup.remove();
+      });
+      popup.appendChild(clearSwatch);
+
+      // Position near the anchor
+      const rect = anchor.getBoundingClientRect();
+      popup.style.left = `${rect.right + 5}px`;
+      popup.style.top = `${rect.top - 5}px`;
+      document.body.appendChild(popup);
+
+      // Adjust if off-screen
+      requestAnimationFrame(() => {
+        const pr = popup.getBoundingClientRect();
+        if (pr.right > window.innerWidth) popup.style.left = `${rect.left - pr.width - 5}px`;
+        if (pr.bottom > window.innerHeight) popup.style.top = `${window.innerHeight - pr.height - 10}px`;
+      });
+
+      // Close on click outside
+      const close = (e) => {
+        if (!popup.contains(e.target) && e.target !== anchor) {
+          popup.remove();
+          document.removeEventListener('mousedown', close);
+        }
+      };
+      setTimeout(() => document.addEventListener('mousedown', close), 0);
+    }
+
+    async function setLabelColorForSelection(type, color) {
+      const indices = Array.from(labelSelection.selected);
+      if (indices.length === 0) return;
+
+      const colorMap = {};
+      indices.forEach(i => { colorMap[i] = color; });
+      await window.videoHub.setLabelColorsBulk(type, colorMap);
+      labelColors = await window.videoHub.getLabelColors();
+      renderAll();
     }
 
     // CSV Import/Export
@@ -3587,7 +3973,9 @@
       // Input headers
       for (let i = 0; i < state.inputs; i++) {
         const label = state.inputLabels[i] || `Input ${i + 1}`;
-        html += `<th class="input-header" data-input="${i}"><span title="${label}">${label}</span></th>`;
+        const iColor = getLabelColor('input', i);
+        const iStyle = iColor ? ` style="color:${iColor}"` : '';
+        html += `<th class="input-header" data-input="${i}"><span title="${label}"${iStyle}>${label}</span></th>`;
       }
       html += '</tr></thead><tbody>';
 
@@ -3604,7 +3992,9 @@
         html += `<tr data-output="${o}">`;
         html += `<td class="lock-cell${lockVisibleClass}"><button class="xy-lock-btn ${lockBtnClass}" data-output="${o}" title="${lockTitle}">${lockIcon}</button></td>`;
         html += `<td class="output-index${isBlackMagic ? ' with-lock' : ''}">${o + 1}</td>`;
-        html += `<td class="output-label after-index${isBlackMagic ? ' with-lock' : ''}" data-output="${o}" title="${outputLabel}">${outputLabel}</td>`;
+        const oColor = getLabelColor('output', o);
+        const oStyle = oColor ? ` style="color:${oColor}"` : '';
+        html += `<td class="output-label after-index${isBlackMagic ? ' with-lock' : ''}" data-output="${o}" title="${outputLabel}"${oStyle}>${outputLabel}</td>`;
 
         for (let i = 0; i < state.inputs; i++) {
           const isActive = routing[o] === i;
@@ -4052,8 +4442,10 @@
 
         // Update routing grid select
         const select = routingGrid.querySelector(`select[data-output="${output}"]`);
-        if (select && select.value !== String(input)) {
-          select.value = input;
+        if (select) {
+          if (select.value !== String(input)) select.value = input;
+          const selColor = getLabelColor('input', input);
+          select.style.color = selColor || '';
         }
 
         // Update XY grid if visible
@@ -4115,6 +4507,8 @@
           if (header) {
             header.textContent = label;
             header.title = label;
+            const iColor = getLabelColor('input', index);
+            header.style.color = iColor || '';
           }
         }
       }
@@ -4130,6 +4524,11 @@
           const options = routingGrid.querySelectorAll(`option[value="${index}"]`);
           options.forEach(option => {
             option.textContent = `${index + 1}: ${label}`;
+            // Update select colour if this is the currently selected option
+            if (option.selected) {
+              const iColor = getLabelColor('input', index);
+              option.closest('select').style.color = iColor || '';
+            }
           });
         }
       }
@@ -4161,6 +4560,8 @@
           const labelDiv = row.querySelector('.output-label');
           if (labelDiv) {
             labelDiv.textContent = label;
+            const oColor = getLabelColor('output', index);
+            labelDiv.style.color = oColor || '';
           }
         }
 
@@ -4171,6 +4572,8 @@
           if (rowLabel) {
             rowLabel.textContent = label;
             rowLabel.title = label;
+            const oColor = getLabelColor('output', index);
+            rowLabel.style.color = oColor || '';
           }
         }
       }
@@ -4390,6 +4793,7 @@
       if (newState) {
         state = newState;
         renderAll();
+        renderBpsButtons();
       }
 
       // Update labels editing state (disabled in controller mode if not connected)
@@ -4618,6 +5022,7 @@
         log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}${levelInfo}`, 'info');
       });
       updateRoutingIncremental(changes);
+      updateBpsActiveStates();
     }
 
     // Helper function to handle state updates from either source
@@ -4629,6 +5034,7 @@
       state = newState;
       if (dimensionsChanged) {
         renderAll();
+        renderBpsButtons();
       }
     }
 
@@ -4636,11 +5042,13 @@
     function handleInputLabelChanges(changes, source) {
       if (source !== currentView) return;
       updateInputLabelsIncremental(changes);
+      renderBpsButtons();
     }
 
     function handleOutputLabelChanges(changes, source) {
       if (source !== currentView) return;
       updateOutputLabelsIncremental(changes);
+      renderBpsButtons();
     }
 
     function handleLockChanges(changes, source) {
@@ -4666,6 +5074,11 @@
     window.videoHub.onControllerInputLabelsChanged((changes) => handleInputLabelChanges(changes, 'controller'));
     window.videoHub.onControllerOutputLabelsChanged((changes) => handleOutputLabelChanges(changes, 'controller'));
     window.videoHub.onControllerLocksChanged((changes) => handleLockChanges(changes, 'controller'));
+
+    window.videoHub.onLabelColorsChanged((data) => {
+      labelColors = data;
+      renderAll();
+    });
 
     window.videoHub.onCommandReceived((data) => {
       const cmdPreview = data.command.split('\n')[0];
@@ -4792,11 +5205,15 @@
         const label = document.createElement('span');
         label.className = 'dest-label';
         label.textContent = state.outputLabels[o] || `Output ${o + 1}`;
+        const dstColor = getLabelColor('output', o);
+        if (dstColor) label.style.color = dstColor;
 
         const source = document.createElement('span');
         source.className = 'dest-source';
         const inputIdx = routing[o];
         source.textContent = '← ' + (state.inputLabels[inputIdx] || `Input ${inputIdx + 1}`);
+        const srcColor = getLabelColor('input', inputIdx);
+        if (srcColor) source.style.color = srcColor;
 
         row.appendChild(checkbox);
         row.appendChild(num);
@@ -4863,16 +5280,109 @@
         salvos.forEach(salvo => {
           const btn = document.createElement('button');
           btn.className = 'salvo-recall-btn';
-          btn.textContent = salvo.name;
-          btn.title = `Recall ${salvo.routes?.length || 0} routes`;
+          btn.textContent = (salvo.protected ? '🔒 ' : '') + salvo.name;
+          btn.title = `Recall ${salvo.routes?.length || 0} routes${salvo.protected ? ' (protected — will confirm)' : ''}`;
           if (salvo.color) {
             btn.style.borderColor = salvo.color;
             btn.style.color = salvo.color;
             btn.style.background = salvo.color + '20';
           }
           btn.addEventListener('click', () => recallSalvo(salvo.id));
+          btn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showSalvoEditModal(salvo);
+          });
           bar.appendChild(btn);
         });
+      });
+    }
+
+    function showSalvoEditModal(salvo) {
+      const overlay = document.createElement('div');
+      overlay.className = 'bps-edit-overlay';
+
+      const escapedName = (salvo.name || '').replace(/"/g, '&quot;');
+      const selectedColor = salvo.color || '';
+
+      let swatchesHtml = `<div class="bps-color-swatch no-color${!selectedColor ? ' selected' : ''}" data-color=""></div>`;
+      SALVO_COLORS.forEach(c => {
+        swatchesHtml += `<div class="bps-color-swatch${selectedColor === c.value ? ' selected' : ''}" data-color="${c.value}" style="background:${c.value}" title="${c.name}"></div>`;
+      });
+
+      const routeCount = salvo.routes ? salvo.routes.length : 0;
+      const date = new Date(salvo.createdAt).toLocaleDateString();
+
+      const isProtected = salvo.protected || false;
+
+      overlay.innerHTML = `
+        <div class="bps-edit-dialog">
+          <h3>Edit Salvo</h3>
+          <label>Name</label>
+          <input type="text" id="salvoEditName" value="${escapedName}" style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;background:rgba(0,0,0,0.3);color:#e0e0e0;font-size:0.85rem;margin-bottom:12px;outline:none;box-sizing:border-box;">
+          <label>Colour</label>
+          <div class="bps-color-swatches">${swatchesHtml}</div>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;user-select:none;">
+            <input type="checkbox" id="salvoEditProtected" ${isProtected ? 'checked' : ''} style="width:16px;height:16px;accent-color:#ffa502;cursor:pointer;">
+            <span>Protected — confirm before recalling</span>
+          </label>
+          <div style="color:#636e72;font-size:0.75rem;margin-bottom:16px;">${routeCount} routes | Created ${date}</div>
+          <div class="bps-edit-buttons">
+            <button class="bps-save" data-action="save">Save</button>
+            <button class="bps-delete" data-action="delete">Delete</button>
+            <button data-action="cancel">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      let currentColor = selectedColor;
+      overlay.querySelectorAll('.bps-color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          overlay.querySelectorAll('.bps-color-swatch').forEach(s => s.classList.remove('selected'));
+          swatch.classList.add('selected');
+          currentColor = swatch.dataset.color;
+        });
+      });
+
+      overlay.addEventListener('click', async (e) => {
+        const action = e.target.dataset.action;
+        if (!action) return;
+
+        if (action === 'cancel') {
+          overlay.remove();
+          return;
+        }
+
+        if (action === 'delete') {
+          const result = await window.videoHub.deleteSalvo(salvo.id);
+          if (result.success) {
+            salvos = result.salvos;
+            renderSalvosList();
+            renderXYSalvosBar();
+          }
+          overlay.remove();
+          return;
+        }
+
+        if (action === 'save') {
+          const newName = overlay.querySelector('#salvoEditName').value.trim();
+          if (newName) salvo.name = newName;
+          salvo.color = currentColor || null;
+          salvo.protected = overlay.querySelector('#salvoEditProtected').checked;
+          const result = await window.videoHub.saveSalvo(salvo);
+          if (result.success) {
+            salvos = result.salvos;
+            renderSalvosList();
+            renderXYSalvosBar();
+          }
+          overlay.remove();
+          return;
+        }
+      });
+
+      overlay.addEventListener('mousedown', (e) => {
+        if (e.target === overlay) overlay.remove();
       });
     }
 
@@ -4915,7 +5425,7 @@
 
         const name = document.createElement('span');
         name.className = 'salvo-name';
-        name.textContent = salvo.name;
+        name.textContent = (salvo.protected ? '🔒 ' : '') + salvo.name;
 
         const meta = document.createElement('span');
         meta.className = 'salvo-meta';
@@ -4976,7 +5486,17 @@
         routes.slice(0, maxChips).forEach(route => {
           const chip = document.createElement('span');
           chip.className = 'salvo-route-chip';
-          chip.textContent = `${route.outputLabel || `Out ${route.output + 1}`} ← ${route.inputLabel || `In ${route.input + 1}`}`;
+          const outText = route.outputLabel || `Out ${route.output + 1}`;
+          const inText = route.inputLabel || `In ${route.input + 1}`;
+          const chipOutColor = getLabelColor('output', route.output);
+          const chipInColor = getLabelColor('input', route.input);
+          if (chipOutColor || chipInColor) {
+            const outSpan = `<span${chipOutColor ? ` style="color:${chipOutColor}"` : ''}>${outText}</span>`;
+            const inSpan = `<span${chipInColor ? ` style="color:${chipInColor}"` : ''}>${inText}</span>`;
+            chip.innerHTML = `${outSpan} ← ${inSpan}`;
+          } else {
+            chip.textContent = `${outText} ← ${inText}`;
+          }
           routesSummary.appendChild(chip);
         });
 
@@ -5007,6 +5527,12 @@
         card.appendChild(colorPicker);
         card.appendChild(routesSummary);
         card.appendChild(actions);
+
+        // Right-click to edit
+        card.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          showSalvoEditModal(salvo);
+        });
 
         // Drag-and-drop reorder
         card.addEventListener('dragstart', (e) => {
@@ -5085,6 +5611,11 @@
       }
       const salvo = salvos.find(s => s.id === salvoId);
       if (!salvo) return;
+
+      if (salvo.protected) {
+        const routeCount = salvo.routes ? salvo.routes.length : 0;
+        if (!confirm(`Recall protected salvo "${salvo.name}"?\n\nThis will apply ${routeCount} route${routeCount !== 1 ? 's' : ''}.`)) return;
+      }
 
       const result = await window.videoHub.recallSalvo(salvoId, currentView);
 
@@ -5242,6 +5773,240 @@
       });
     }
 
+    // BPS Buttons
+    let bpsButtons = [];
+
+    async function loadBpsButtons() {
+      bpsButtons = await window.videoHub.getBpsButtons();
+      renderBpsButtons();
+    }
+
+    function renderBpsButtons() {
+      const container = document.getElementById('bpsContainer');
+      const addBtn = document.getElementById('bpsAddBtn');
+      if (!container || !addBtn) return;
+
+      // Remove existing BPS buttons (keep the + button)
+      container.querySelectorAll('.bps-btn').forEach(b => b.remove());
+
+      const routing = getCurrentRouting();
+
+      bpsButtons.forEach(bps => {
+        const btn = document.createElement('button');
+        btn.className = 'bps-btn';
+        btn.dataset.bpsId = bps.id;
+        btn.draggable = true;
+
+        // Label — use custom name if set, otherwise fall back to source label
+        const srcLabel = state.inputLabels[bps.source] || `Src ${bps.source + 1}`;
+        const dstLabel = state.outputLabels[bps.destination] || `Dst ${bps.destination + 1}`;
+        const displayName = bps.name || srcLabel;
+        btn.textContent = displayName;
+        btn.title = `${displayName} — ${srcLabel} → ${dstLabel}`;
+
+        // Colour — BPS button colour takes priority, then source label colour
+        const bpsDisplayColor = bps.color || getLabelColor('input', bps.source);
+        if (bpsDisplayColor) {
+          btn.style.borderColor = bpsDisplayColor;
+          btn.style.color = bpsDisplayColor;
+          btn.style.background = bpsDisplayColor + '18';
+        }
+
+        // Active state
+        if (routing[bps.destination] === bps.source) {
+          btn.classList.add('active');
+        }
+
+        // Left click — make the route (bypasses protect mode)
+        btn.addEventListener('click', async () => {
+          const currentRouting = getCurrentRouting();
+          const previousInput = currentRouting?.[bps.destination];
+          await window.videoHub.setRoute(bps.destination, bps.source, bps.level ?? currentLevel, currentView);
+          pushUndoEntry({ output: bps.destination, previousInput });
+          resetAutoProtectTimer();
+        });
+
+        // Right click — edit modal
+        btn.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          showBpsEditModal(bps);
+        });
+
+        // Drag-and-drop for reordering
+        btn.addEventListener('dragstart', (e) => {
+          btn.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/bps-id', bps.id);
+        });
+        btn.addEventListener('dragend', () => {
+          btn.classList.remove('dragging');
+          container.querySelectorAll('.bps-btn.drag-over').forEach(b => b.classList.remove('drag-over'));
+        });
+        btn.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const dragging = container.querySelector('.bps-btn.dragging');
+          if (dragging && dragging !== btn) {
+            btn.classList.add('drag-over');
+          }
+        });
+        btn.addEventListener('dragleave', () => {
+          btn.classList.remove('drag-over');
+        });
+        btn.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          btn.classList.remove('drag-over');
+          const draggedId = e.dataTransfer.getData('text/bps-id');
+          if (!draggedId || draggedId === bps.id) return;
+
+          const ids = bpsButtons.map(b => b.id);
+          const fromIndex = ids.indexOf(draggedId);
+          const toIndex = ids.indexOf(bps.id);
+          if (fromIndex < 0 || toIndex < 0) return;
+
+          ids.splice(fromIndex, 1);
+          ids.splice(toIndex, 0, draggedId);
+
+          const result = await window.videoHub.reorderBpsButtons(ids);
+          if (result.success) {
+            bpsButtons = result.bpsButtons;
+            renderBpsButtons();
+          }
+        });
+
+        container.insertBefore(btn, addBtn);
+      });
+    }
+
+    function updateBpsActiveStates() {
+      const container = document.getElementById('bpsContainer');
+      if (!container) return;
+      const routing = getCurrentRouting();
+      container.querySelectorAll('.bps-btn').forEach(btn => {
+        const bpsId = btn.dataset.bpsId;
+        const bps = bpsButtons.find(b => b.id === bpsId);
+        if (bps) {
+          btn.classList.toggle('active', routing[bps.destination] === bps.source);
+        }
+      });
+    }
+
+    function showBpsEditModal(existingBps) {
+      const overlay = document.createElement('div');
+      overlay.className = 'bps-edit-overlay';
+
+      const isEditing = !!existingBps;
+      // Default new buttons to the last button's source/destination
+      const lastBps = !isEditing && bpsButtons.length > 0 ? bpsButtons[bpsButtons.length - 1] : null;
+      const selectedSource = existingBps ? existingBps.source : (lastBps ? lastBps.source : 0);
+      const selectedDest = existingBps ? existingBps.destination : (lastBps ? lastBps.destination : 0);
+      const selectedColor = existingBps ? (existingBps.color || '') : (lastBps ? (lastBps.color || '') : '');
+      const selectedName = existingBps ? (existingBps.name || '') : '';
+
+      // Build source options
+      let srcOptions = '';
+      for (let i = 0; i < state.inputs; i++) {
+        const label = state.inputLabels[i] || `Input ${i + 1}`;
+        const sel = i === selectedSource ? ' selected' : '';
+        srcOptions += `<option value="${i}"${sel}>${i + 1} | ${label}</option>`;
+      }
+
+      // Build destination options
+      let dstOptions = '';
+      for (let o = 0; o < state.outputs; o++) {
+        const label = state.outputLabels[o] || `Output ${o + 1}`;
+        const sel = o === selectedDest ? ' selected' : '';
+        dstOptions += `<option value="${o}"${sel}>${o + 1} | ${label}</option>`;
+      }
+
+      // Build colour swatches
+      let swatchesHtml = `<div class="bps-color-swatch no-color${!selectedColor ? ' selected' : ''}" data-color=""></div>`;
+      SALVO_COLORS.forEach(c => {
+        swatchesHtml += `<div class="bps-color-swatch${selectedColor === c.value ? ' selected' : ''}" data-color="${c.value}" style="background:${c.value}" title="${c.name}"></div>`;
+      });
+
+      const deleteBtn = isEditing ? '<button class="bps-delete" data-action="delete">Delete</button>' : '';
+      const escapedName = selectedName.replace(/"/g, '&quot;');
+
+      overlay.innerHTML = `
+        <div class="bps-edit-dialog">
+          <h3>${isEditing ? 'Edit' : 'Add'} BPS Button</h3>
+          <label>Name <span style="color:#636e72;font-weight:normal">(optional — defaults to source label)</span></label>
+          <input type="text" id="bpsEditName" value="${escapedName}" placeholder="Leave blank for source label" style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;background:rgba(0,0,0,0.3);color:#e0e0e0;font-size:0.85rem;margin-bottom:12px;outline:none;box-sizing:border-box;">
+          <label>Source</label>
+          <select id="bpsEditSource">${srcOptions}</select>
+          <label>Destination</label>
+          <select id="bpsEditDest">${dstOptions}</select>
+          <label>Colour</label>
+          <div class="bps-color-swatches">${swatchesHtml}</div>
+          <div class="bps-edit-buttons">
+            <button class="bps-save" data-action="save">Save</button>
+            ${deleteBtn}
+            <button data-action="cancel">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      // Colour swatch selection
+      let currentColor = selectedColor;
+      overlay.querySelectorAll('.bps-color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          overlay.querySelectorAll('.bps-color-swatch').forEach(s => s.classList.remove('selected'));
+          swatch.classList.add('selected');
+          currentColor = swatch.dataset.color;
+        });
+      });
+
+      // Button actions
+      overlay.addEventListener('click', async (e) => {
+        const action = e.target.dataset.action;
+        if (!action) return;
+
+        if (action === 'cancel') {
+          overlay.remove();
+          return;
+        }
+
+        if (action === 'delete' && existingBps) {
+          const result = await window.videoHub.deleteBpsButton(existingBps.id);
+          if (result.success) {
+            bpsButtons = result.bpsButtons;
+            renderBpsButtons();
+          }
+          overlay.remove();
+          return;
+        }
+
+        if (action === 'save') {
+          const source = parseInt(overlay.querySelector('#bpsEditSource').value);
+          const dest = parseInt(overlay.querySelector('#bpsEditDest').value);
+          const name = overlay.querySelector('#bpsEditName').value.trim();
+          const button = {
+            id: existingBps?.id || undefined,
+            name: name || null,
+            source: source,
+            destination: dest,
+            color: currentColor || null,
+            level: currentLevel
+          };
+          const result = await window.videoHub.saveBpsButton(button);
+          if (result.success) {
+            bpsButtons = result.bpsButtons;
+            renderBpsButtons();
+          }
+          overlay.remove();
+          return;
+        }
+      });
+
+      // Close on overlay background click
+      overlay.addEventListener('mousedown', (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+    }
+
     // Initialize
     async function init() {
       // Load saved settings
@@ -5333,8 +6098,10 @@
       appTitle.textContent = currentView === 'simulator' ? getSimulatorTitle() : getControllerTitle();
       renderAll();
 
-      // Load salvos
+      // Load label colours, salvos, and BPS buttons
+      await loadLabelColors();
       await loadSalvos();
+      await loadBpsButtons();
 
       log('Router Protocol Simulator initialized', 'success');
 
@@ -5393,6 +6160,8 @@
       }
     }
 
+    document.getElementById('bpsAddBtn').addEventListener('click', () => showBpsEditModal(null));
+
     document.getElementById('xyProtectBtn').addEventListener('click', handleProtectToggle);
     document.getElementById('routingProtectBtn').addEventListener('click', handleProtectToggle);
 
@@ -5438,11 +6207,16 @@
     });
 
     // Sidebar toggle
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      document.getElementById('sidebar').classList.add('collapsed');
+      document.getElementById('sidebarToggle').classList.add('collapsed');
+    }
     document.getElementById('sidebarToggle').addEventListener('click', () => {
       const sidebar = document.getElementById('sidebar');
       const toggle = document.getElementById('sidebarToggle');
       sidebar.classList.toggle('collapsed');
       toggle.classList.toggle('collapsed');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
     });
 
     // Log panel toggle
@@ -5512,6 +6286,12 @@
             break;
           case 'deselect':
             clearLabelSelection();
+            break;
+          case 'set-color':
+            // Handled by swatch clicks directly — don't close menu
+            return;
+          case 'clear-color':
+            setLabelColorForSelection(type, null);
             break;
         }
 

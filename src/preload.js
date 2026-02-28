@@ -52,6 +52,18 @@ contextBridge.exposeInMainWorld('videoHub', {
   importSalvos: () => ipcRenderer.invoke('import-salvos'),
   importSalvosResolve: (imported, resolution) => ipcRenderer.invoke('import-salvos-resolve', imported, resolution),
 
+  // Label colours
+  getLabelColors: () => ipcRenderer.invoke('get-label-colors'),
+  setLabelColor: (type, index, color) => ipcRenderer.invoke('set-label-color', type, index, color),
+  setLabelColorsBulk: (type, colorMap) => ipcRenderer.invoke('set-label-colors-bulk', type, colorMap),
+  onLabelColorsChanged: (callback) => ipcRenderer.on('label-colors-changed', (_, data) => callback(data)),
+
+  // BPS buttons
+  getBpsButtons: () => ipcRenderer.invoke('get-bps-buttons'),
+  saveBpsButton: (button) => ipcRenderer.invoke('save-bps-button', button),
+  deleteBpsButton: (buttonId) => ipcRenderer.invoke('delete-bps-button', buttonId),
+  reorderBpsButtons: (orderedIds) => ipcRenderer.invoke('reorder-bps-buttons', orderedIds),
+
   // Update checker
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),

@@ -76,7 +76,12 @@ function loadSettings() {
     // Router connection history
     routerHistory: [],
     // Salvos - captured routing states
-    salvos: []
+    salvos: [],
+    // BPS buttons - quick routing shortcuts
+    bpsButtons: [],
+    // Label colours - per-label fill colours
+    inputLabelColors: {},
+    outputLabelColors: {}
   };
   return settings;
 }
@@ -1030,6 +1035,107 @@ function setupIpcHandlers() {
 
     saveSettings();
     return { success: true, count: added, salvos: settings.salvos };
+  });
+
+  // BPS buttons
+  ipcMain.handle('get-bps-buttons', () => {
+    return settings.bpsButtons || [];
+  });
+
+  ipcMain.handle('save-bps-button', (event, button) => {
+    if (!settings.bpsButtons) settings.bpsButtons = [];
+    if (button.id) {
+      const idx = settings.bpsButtons.findIndex(b => b.id === button.id);
+      if (idx >= 0) {
+        settings.bpsButtons[idx] = button;
+      } else {
+        settings.bpsButtons.push(button);
+      }
+    } else {
+      button.id = `bps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      settings.bpsButtons.push(button);
+    }
+    saveSettings();
+    return { success: true, bpsButtons: settings.bpsButtons };
+  });
+
+  ipcMain.handle('delete-bps-button', (event, buttonId) => {
+    if (!settings.bpsButtons) return { success: false };
+    settings.bpsButtons = settings.bpsButtons.filter(b => b.id !== buttonId);
+    saveSettings();
+    return { success: true, bpsButtons: settings.bpsButtons };
+  });
+
+  ipcMain.handle('reorder-bps-buttons', (event, orderedIds) => {
+    if (!settings.bpsButtons) return { success: false };
+    const ordered = orderedIds.map(id => settings.bpsButtons.find(b => b.id === id)).filter(Boolean);
+    settings.bpsButtons = ordered;
+    saveSettings();
+    return { success: true, bpsButtons: settings.bpsButtons };
+  });
+
+  // Label colours
+  ipcMain.handle('get-label-colors', () => {
+    return {
+      inputLabelColors: settings.inputLabelColors || {},
+      outputLabelColors: settings.outputLabelColors || {}
+    };
+  });
+
+  ipcMain.handle('set-label-color', (event, type, index, color) => {
+    if (type === 'input') {
+      if (!settings.inputLabelColors) settings.inputLabelColors = {};
+      if (color) {
+        settings.inputLabelColors[index] = color;
+      } else {
+        delete settings.inputLabelColors[index];
+      }
+    } else {
+      if (!settings.outputLabelColors) settings.outputLabelColors = {};
+      if (color) {
+        settings.outputLabelColors[index] = color;
+      } else {
+        delete settings.outputLabelColors[index];
+      }
+    }
+    saveSettings();
+    if (mainWindow) {
+      mainWindow.webContents.send('label-colors-changed', {
+        inputLabelColors: settings.inputLabelColors || {},
+        outputLabelColors: settings.outputLabelColors || {}
+      });
+    }
+    return { success: true };
+  });
+
+  ipcMain.handle('set-label-colors-bulk', (event, type, colorMap) => {
+    if (type === 'input') {
+      if (!settings.inputLabelColors) settings.inputLabelColors = {};
+      Object.entries(colorMap).forEach(([index, color]) => {
+        if (color) {
+          settings.inputLabelColors[index] = color;
+        } else {
+          delete settings.inputLabelColors[index];
+        }
+      });
+    } else {
+      if (!settings.outputLabelColors) settings.outputLabelColors = {};
+      Object.entries(colorMap).forEach(([index, color]) => {
+        if (color) {
+          settings.outputLabelColors[index] = color;
+        } else {
+          delete settings.outputLabelColors[index];
+        }
+      });
+    }
+    saveSettings();
+    if (mainWindow) {
+      mainWindow.webContents.send('label-colors-changed', {
+        inputLabelColors: settings.inputLabelColors || {},
+        outputLabelColors: settings.outputLabelColors || {}
+      });
+    }
+    return { success: true };
   });
 }
 
