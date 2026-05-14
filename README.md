@@ -14,10 +14,10 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 
 ## Screenshots
 
-### Routing Matrix
+### List View
 ![Routing Matrix](screenshots/routing-matrix.png)
 
-### XY Crosspoint Grid with Minimap
+### Matrix View
 ![XY Grid with Minimap](screenshots/xy-grid-minimap.png)
 
 ### Labels with Context Menu
@@ -40,6 +40,12 @@ A cross-platform Electron application that simulates broadcast video routers. Su
 - **Auto-start Option** - Server can start automatically on launch
 - **Live Activity Log** - Monitor all protocol commands and client connections
 - **XY Crosspoint Grid** - Visual crosspoint matrix view for intuitive routing
+- **Saved Salvos with Stable IDs** - Rename captured salvos without changing their ID, duplicate them, and copy IDs for external integrations
+- **Editable Salvo Routes** - Open an existing salvo, change routes, delete routes, or add new routes directly in the UI
+- **Route Delta Logging** - Activity log can focus on routing changes and shows previous and new state for each changed destination
+- **Direct Undo Actions** - Undo individual routing changes from the log or undo an entire recalled salvo as a group
+- **Lock-aware Routing UI** - Locked outputs are greyed out and blocked in both List and Matrix views
+- **Separate Label Reset Actions** - Reset all input labels or all output labels independently with confirmation
 
 ## Supported Protocols
 
@@ -99,6 +105,57 @@ npm run build:win   # Windows
 2. **Configure Router** - Set the number of inputs/outputs, TCP port, and other options
 3. **Start the Server** - Click "Start Server" to begin listening
 4. **Connect Clients** - Point your control software to the appropriate port
+
+### Saved Salvos
+
+- Captured salvos keep a stable internal ID even if you rename them later.
+- Each saved salvo shows its ID in the UI. Clicking the ID copies it to the clipboard.
+- Salvos can be duplicated as a new salvo with a fresh ID.
+- Existing salvos can be expanded to edit their stored routes directly.
+
+### Activity Log and Undo
+
+- The Activity Log can be filtered with Show only changed routings.
+- Routing entries show the destination, the new source, and the previous source.
+- Each routing entry offers a direct undo action.
+- Recalling a salvo creates a grouped undo action for the routes that were actually applied.
+
+### Output Locks
+
+- In VideoHub mode, locked outputs cannot be changed in either the List view or the Matrix view.
+- Locked rows are dimmed so you can see immediately which destinations are protected.
+
+app### External Control API
+
+The app now exposes a localhost control API intended for custom automation and Companion integration. The API sits above the internal simulator/controller abstraction, so the same calls can target the active simulator view or a connected controller.
+
+- Default bind: `127.0.0.1:9123`
+- Default state: enabled on localhost
+- Optional auth: set `VIDEOHUBSIM_EXTERNAL_CONTROL_TOKEN` and send it as `Authorization: Bearer ...` or `X-Auth-Token`
+- Optional overrides: `VIDEOHUBSIM_EXTERNAL_CONTROL_ENABLED`, `VIDEOHUBSIM_EXTERNAL_CONTROL_HOST`, `VIDEOHUBSIM_EXTERNAL_CONTROL_PORT`, `VIDEOHUBSIM_EXTERNAL_CONTROL_TOKEN`
+
+Available endpoints:
+
+- `GET /api/health` - API status and current app mode
+- `GET /api/state?target=active|simulator|controller` - current routing state, numeric crosspoints, labels for separate choice lists, and matching salvos
+- `GET /api/choices?target=active|simulator|controller` - Companion-friendly dropdown data for inputs, outputs, levels, and salvos
+- `GET /api/salvos` - saved salvos with stable IDs
+- `POST /api/route` - set a route using human 1-based numbers by default, for example `{ "output": 1, "input": 15 }`
+- `POST /api/salvos/:id/recall` - recall a saved salvo by ID
+- `GET /api/events` - Server-Sent Events stream with initial `health`, `state`, `choices`, and `salvos` payloads plus live app events
+
+Examples:
+
+```bash
+curl http://127.0.0.1:9123/api/health
+curl http://127.0.0.1:9123/api/state
+curl -X POST http://127.0.0.1:9123/api/route \
+    -H 'Content-Type: application/json' \
+    -d '{"output":1,"input":15}'
+curl -X POST http://127.0.0.1:9123/api/salvos/salvo_123/recall \
+    -H 'Content-Type: application/json' \
+    -d '{}'
+```
 
 ### Configuration Options
 

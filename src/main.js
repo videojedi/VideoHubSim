@@ -4,6 +4,7 @@ const fs = require('fs');
 const VideoHubServer = require('./videohub-server');
 const SWP08Server = require('./swp08-server');
 const GVNativeServer = require('./gvnative-server');
+const ExternalControlServer = require('./external-control-server');
 
 // Controller imports (will be created)
 let VideoHubController, SWP08Controller, GVNativeController;
@@ -16,11 +17,15 @@ try {
 }
 
 let mainWindow;
+let matrixWindow;
 let routerServer;      // Simulator server (always exists)
 let controllerInstance; // Controller (created on connect)
+let externalControlServer;
 let currentProtocol = 'videohub';
 let currentView = 'simulator';  // 'simulator' or 'controller' - just determines what's displayed
 let settings = {};
+const ROUTE_HISTORY_PREVIOUS_COUNT = 5;
+let routeHistory = { simulator: {}, controller: {} };
 
 // macOS Local Network TCC probe — triggers the system permission prompt
 let localNetworkProbed = false;
@@ -73,6 +78,12 @@ function loadSettings() {
     autoReconnect: true,
     autoConnect: false,
     autoProtect: false,
+    externalControl: {
+      enabled: true,
+      host: '127.0.0.1',
+      port: 9123,
+      authToken: ''
+    },
     // Router connection history
     routerHistory: [],
     // Salvos - captured routing states
@@ -107,9 +118,499 @@ function updateSettings(config) {
 }
 
 function sendToRenderer(channel, ...args) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(channel, ...args);
+  BrowserWindow.getAllWindows().forEach(window => {
+    if (!window.isDestroyed()) {
+      window.webContents.send(channel, ...args);
+    }
+  });
+
+  if (externalControlServer) {
+    externalControlServer.publish(channel, args.length <= 1 ? args[0] : args);
   }
+}
+
+function getExternalControlConfig() {
+  const configured = settings.externalControl || {};
+
+  return {
+    enabled: process.env.VIDEOHUBSIM_EXTERNAL_CONTROL_ENABLED
+      ? !['0', 'false', 'no'].includes(process.env.VIDEOHUBSIM_EXTERNAL_CONTROL_ENABLED.toLowerCase())
+      : configured.enabled !== false,
+    host: process.env.VIDEOHUBSIM_EXTERNAL_CONTROL_HOST || configured.host || '127.0.0.1',
+    port: Number(process.env.VIDEOHUBSIM_EXTERNAL_CONTROL_PORT || configured.port || 9123),
+    authToken: process.env.VIDEOHUBSIM_EXTERNAL_CONTROL_TOKEN || configured.authToken || ''
+  };
+}
+
+function resolveExternalTarget(target = 'active') {
+  if (target === 'controller') {
+    return {
+      requestedTarget: target,
+      target: 'controller',
+      instance: controllerInstance && controllerInstance.isConnected() ? controllerInstance : null
+    };
+  }
+
+  if (target === 'simulator') {
+    return {
+      requestedTarget: target,
+      target: 'simulator',
+      instance: routerServer || null
+    };
+  }
+
+  if (currentView === 'controller' && controllerInstance && controllerInstance.isConnected()) {
+    return {
+      requestedTarget: target,
+      target: 'controller',
+      instance: controllerInstance
+    };
+  }
+
+  return {
+    requestedTarget: target,
+    target: 'simulator',
+    instance: routerServer || null
+  };
+}
+
+function buildRoutingSnapshot(state, instance) {
+  if (!state) {
+    return {};
+  }
+
+  if (state.allRouting) {
+    return state.allRouting;
+  }
+
+  if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance?.getRoutingForLevel) {
+    const allRouting = {};
+    for (let level = 0; level < (state.levels || 1); level++) {
+      allRouting[level] = instance.getRoutingForLevel(level);
+    }
+    return allRouting;
+  }
+
+  return { 0: state.routing || {} };
+}
+
+function getMatchingSalvos(state, instance) {
+  if (!state || !Array.isArray(settings.salvos)) {
+    return [];
+  }
+
+  const routingByLevel = buildRoutingSnapshot(state, instance);
+
+  return settings.salvos
+    .filter(salvo => !salvo.protocol || salvo.protocol === currentProtocol)
+    .filter(salvo => Array.isArray(salvo.routes) && salvo.routes.length > 0)
+    .filter(salvo => salvo.routes.every(route => {
+      const level = route.level || 0;
+      return routingByLevel[level]?.[route.output] === route.input;
+    }))
+    .map(salvo => ({
+      id: salvo.id,
+      name: salvo.name,
+      color: salvo.color || null
+    }));
+}
+
+function getExternalControlState(target = 'active') {
+  const resolved = resolveExternalTarget(target);
+  const state = resolved.instance ? resolved.instance.getState() : null;
+  const allRouting = buildRoutingSnapshot(state, resolved.instance);
+  const crosspoints = [];
+
+  Object.entries(allRouting).forEach(([levelKey, levelRouting]) => {
+    const levelId = Number(levelKey);
+    Object.entries(levelRouting || {}).forEach(([outputKey, inputValue]) => {
+      const outputId = Number(outputKey);
+      const inputId = Number(inputValue);
+      crosspoints.push({
+        levelId,
+        levelNumber: levelId + 1,
+        outputId,
+        outputNumber: outputId + 1,
+        inputId,
+        inputNumber: inputId + 1
+      });
+    });
+  });
+
+  return {
+    requestedTarget: resolved.requestedTarget,
+    target: resolved.target,
+    available: Boolean(resolved.instance),
+    currentView,
+    protocol: currentProtocol,
+    indexBase: 0,
+    serverRunning: Boolean(routerServer?.server?.listening),
+    controllerConnected: Boolean(controllerInstance?.isConnected?.()),
+    inputs: state?.inputs || 0,
+    outputs: state?.outputs || 0,
+    levels: state?.levels || settings.levels || 1,
+    routing: state?.routing || {},
+    allRouting,
+    crosspoints,
+    inputLabels: state?.inputLabels || {},
+    outputLabels: state?.outputLabels || {},
+    levelNames: state?.levelNames || {},
+    matchingSalvos: getMatchingSalvos(state, resolved.instance)
+  };
+}
+
+function getExternalChoices(target = 'active') {
+  const state = getExternalControlState(target);
+  const levelCount = state.levels || 1;
+
+  return {
+    target: state.target,
+    protocol: state.protocol,
+    inputs: Array.from({ length: state.inputs }, (_, index) => ({
+      id: index,
+      number: index + 1,
+      label: state.inputLabels[index] || `Input ${index + 1}`
+    })),
+    outputs: Array.from({ length: state.outputs }, (_, index) => ({
+      id: index,
+      number: index + 1,
+      label: state.outputLabels[index] || `Output ${index + 1}`,
+      currentInputId: state.routing[index] ?? null,
+      currentInput: state.routing[index] !== undefined ? Number(state.routing[index]) + 1 : null
+    })),
+    levels: Array.from({ length: levelCount }, (_, index) => ({
+      id: index,
+      number: index + 1,
+      label: state.levelNames[index] || `Level ${index + 1}`
+    })),
+    salvos: (settings.salvos || []).map(salvo => ({
+      id: salvo.id,
+      label: salvo.name,
+      routeCount: Array.isArray(salvo.routes) ? salvo.routes.length : 0,
+      color: salvo.color || null,
+      protocol: salvo.protocol || null,
+      source: salvo.source || null
+    }))
+  };
+}
+
+function getExternalControlStatusData() {
+  const config = getExternalControlConfig();
+
+  return {
+    enabled: config.enabled,
+    host: config.host,
+    port: externalControlServer?.getListeningPort() || config.port,
+    authTokenConfigured: Boolean(config.authToken),
+    running: externalControlServer?.isRunning() || false,
+    currentView,
+    protocol: currentProtocol,
+    serverRunning: Boolean(routerServer?.server?.listening),
+    controllerConnected: Boolean(controllerInstance?.isConnected?.())
+  };
+}
+
+function summarizeSalvos() {
+  return (settings.salvos || []).map(salvo => ({
+    id: salvo.id,
+    name: salvo.name,
+    routeCount: Array.isArray(salvo.routes) ? salvo.routes.length : 0,
+    protocol: salvo.protocol || null,
+    source: salvo.source || null,
+    color: salvo.color || null,
+    createdAt: salvo.createdAt || null,
+    updatedAt: salvo.updatedAt || null
+  }));
+}
+
+function emitSalvosChanged(target = 'active') {
+  sendToRenderer('salvos-changed', {
+    salvos: summarizeSalvos(),
+    matchingSalvos: getExternalControlState(target).matchingSalvos
+  });
+}
+
+function emitExternalControlStatusChanged() {
+  sendToRenderer('external-control-status-changed', getExternalControlStatusData());
+}
+
+function getExternalControlHealth() {
+  return {
+    success: true,
+    data: getExternalControlStatusData()
+  };
+}
+
+function buildCapturedSalvo({ name, selectedOutputs, target = 'simulator', selectedLevel } = {}) {
+  const instance = (target === 'controller' && controllerInstance && controllerInstance.isConnected())
+    ? controllerInstance
+    : routerServer;
+
+  if (!instance) {
+    throw new Error(`Target ${target} is not available`);
+  }
+
+  const state = instance.getState();
+  const routes = [];
+  const outputsToCapture = selectedOutputs && selectedOutputs.length > 0
+    ? selectedOutputs
+    : Array.from({ length: state.outputs }, (_, index) => index);
+  const isMultiLevel = currentProtocol === 'swp08' || currentProtocol === 'gvnative';
+
+  if (isMultiLevel && state.allRouting) {
+    const levelsToCapture = selectedLevel !== null && selectedLevel !== undefined
+      ? [selectedLevel]
+      : Object.keys(state.allRouting).map(level => parseInt(level, 10));
+
+    for (const level of levelsToCapture) {
+      const levelRouting = state.allRouting[level];
+      if (!levelRouting) continue;
+
+      for (const output of outputsToCapture) {
+        if (levelRouting[output] === undefined) continue;
+
+        routes.push({
+          output: parseInt(output, 10),
+          input: levelRouting[output],
+          level: parseInt(level, 10),
+          outputLabel: state.outputLabels[output] || `Output ${parseInt(output, 10) + 1}`,
+          inputLabel: state.inputLabels[levelRouting[output]] || `Input ${levelRouting[output] + 1}`,
+          levelName: state.levelNames?.[level] || `Level ${parseInt(level, 10) + 1}`
+        });
+      }
+    }
+  } else {
+    for (const output of outputsToCapture) {
+      if (state.routing[output] === undefined) continue;
+
+      routes.push({
+        output: parseInt(output, 10),
+        input: state.routing[output],
+        level: 0,
+        outputLabel: state.outputLabels[output] || `Output ${parseInt(output, 10) + 1}`,
+        inputLabel: state.inputLabels[state.routing[output]] || `Input ${state.routing[output] + 1}`
+      });
+    }
+  }
+
+  return {
+    id: generateSalvoId(),
+    name: name || `Salvo ${(settings.salvos?.length || 0) + 1}`,
+    routes,
+    protocol: currentProtocol,
+    source: target,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function saveCapturedSalvo(salvo) {
+  if (!settings.salvos) settings.salvos = [];
+  settings.salvos.push(salvo);
+  saveSettings();
+  emitSalvosChanged(salvo.source || 'active');
+  return { success: true, salvo, salvos: settings.salvos };
+}
+
+async function updateExternalControlConfig(config = {}) {
+  settings.externalControl = {
+    ...(settings.externalControl || {}),
+    ...config
+  };
+  saveSettings();
+
+  const resolvedConfig = getExternalControlConfig();
+
+  if (!externalControlServer) {
+    return { success: false, error: 'External control server not available' };
+  }
+
+  if (externalControlServer.isRunning()) {
+    await externalControlServer.stop().catch(() => {});
+  }
+
+  if (resolvedConfig.enabled) {
+    await externalControlServer.start(resolvedConfig);
+  }
+
+  emitExternalControlStatusChanged();
+
+  return {
+    success: true,
+    externalControl: getExternalControlStatusData()
+  };
+}
+
+async function setExternalRoute({ output, input, level = 0, target = 'active' } = {}) {
+  const outputId = Number.isInteger(arguments[0]?.outputId) ? arguments[0].outputId : Number(output) - 1;
+  const inputId = Number.isInteger(arguments[0]?.inputId) ? arguments[0].inputId : Number(input) - 1;
+  const levelId = Number.isInteger(arguments[0]?.levelId) ? arguments[0].levelId : Number(level || 1) - 1;
+
+  if (![outputId, inputId, levelId].every(Number.isInteger)) {
+    throw new Error('output/input/level must be integers');
+  }
+
+  if (outputId < 0 || inputId < 0 || levelId < 0) {
+    throw new Error('output/input/level must be 1-based numbers or explicit zero-based ids');
+  }
+
+  const resolved = resolveExternalTarget(target);
+  if (!resolved.instance) {
+    throw new Error(`Target ${resolved.target} is not available`);
+  }
+
+  await resolved.instance.setRoute(outputId, inputId, levelId);
+
+  return {
+    target: resolved.target,
+    outputId,
+    output: outputId + 1,
+    inputId,
+    input: inputId + 1,
+    levelId,
+    level: levelId + 1,
+    state: getExternalControlState(resolved.target)
+  };
+}
+
+async function recallExternalSalvo({ salvoId, target = 'active' } = {}) {
+  const salvo = (settings.salvos || []).find(entry => entry.id === salvoId);
+  if (!salvo) {
+    throw new Error('Salvo not found');
+  }
+
+  const resolved = resolveExternalTarget(target);
+  if (!resolved.instance) {
+    throw new Error(`Target ${resolved.target} is not available`);
+  }
+
+  const errors = [];
+
+  for (const route of salvo.routes || []) {
+    try {
+      await resolved.instance.setRoute(route.output, route.input, route.level || 0);
+    } catch (err) {
+      errors.push(`Route ${route.output}->${route.input}: ${err.message}`);
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    salvoId,
+    target: resolved.target,
+    appliedCount: (salvo.routes || []).length - errors.length,
+    errors,
+    state: getExternalControlState(resolved.target)
+  };
+}
+
+async function captureExternalSalvo({ name, target = 'active', includeAllOutputs = true, selectedOutputs, level } = {}) {
+  const resolved = resolveExternalTarget(target);
+  if (!resolved.instance) {
+    throw new Error(`Target ${resolved.target} is not available`);
+  }
+
+  const selectedLevel = level === 'all' || level === undefined || level === null
+    ? null
+    : (Number.isInteger(level) ? level : Number(level) - 1);
+  const outputs = includeAllOutputs
+    ? null
+    : (Array.isArray(selectedOutputs) ? selectedOutputs.map(value => Number.isInteger(value) ? value : Number(value) - 1) : []);
+
+  if (outputs && outputs.some(output => !Number.isInteger(output) || output < 0)) {
+    throw new Error('selectedOutputs must contain 1-based numbers or explicit zero-based ids');
+  }
+
+  if (selectedLevel !== null && (!Number.isInteger(selectedLevel) || selectedLevel < 0)) {
+    throw new Error('level must be "all", a 1-based number, or an explicit zero-based id');
+  }
+
+  const salvo = buildCapturedSalvo({
+    name,
+    selectedOutputs: outputs,
+    target: resolved.target,
+    selectedLevel
+  });
+
+  return saveCapturedSalvo(salvo);
+}
+
+function createExternalControlServer() {
+  externalControlServer = new ExternalControlServer({
+    getHealth: getExternalControlHealth,
+    getState: getExternalControlState,
+    getChoices: getExternalChoices,
+    getSalvos: () => settings.salvos || [],
+    setRoute: setExternalRoute,
+    recallSalvo: recallExternalSalvo,
+    captureSalvo: captureExternalSalvo
+  });
+}
+
+function generateSalvoId(suffix = '') {
+  return `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}${suffix}`;
+}
+
+function getRouteHistoryKey(level, output) {
+  return `${level}:${output}`;
+}
+
+function broadcastRouteHistory(target) {
+  sendToRenderer('route-history-updated', {
+    target,
+    history: routeHistory[target] || {}
+  });
+}
+
+function resetRouteHistoryForTarget(target, state, instance) {
+  routeHistory[target] = {};
+
+  if (!state || !instance) {
+    broadcastRouteHistory(target);
+    return;
+  }
+
+  const timestamp = Date.now();
+  const levels = (currentProtocol === 'swp08' || currentProtocol === 'gvnative') ? (state.levels || 1) : 1;
+
+  for (let level = 0; level < levels; level++) {
+    const routing = (currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance.getRoutingForLevel
+      ? instance.getRoutingForLevel(level)
+      : state.routing;
+
+    if (!routing) continue;
+
+    for (let output = 0; output < (state.outputs || 0); output++) {
+      const input = routing[output];
+      if (input === undefined || input === null) continue;
+      routeHistory[target][getRouteHistoryKey(level, output)] = [{ input, timestamp }];
+    }
+  }
+
+  broadcastRouteHistory(target);
+}
+
+function recordRouteHistoryEntries(target, changes) {
+  if (!routeHistory[target]) {
+    routeHistory[target] = {};
+  }
+
+  const timestamp = Date.now();
+  changes.forEach(change => {
+    const level = change.level ?? 0;
+    const key = getRouteHistoryKey(level, change.output);
+    const entries = routeHistory[target][key] ? [...routeHistory[target][key]] : [];
+
+    if (entries[0]?.input === change.input) {
+      entries[0] = { input: change.input, timestamp };
+    } else {
+      entries.unshift({ input: change.input, timestamp });
+    }
+
+    routeHistory[target][key] = entries.slice(0, ROUTE_HISTORY_PREVIOUS_COUNT + 1);
+  });
+
+  broadcastRouteHistory(target);
 }
 
 // Check for updates against GitHub releases
@@ -187,10 +688,49 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
   }
+}
+
+function createMatrixWindow() {
+  if (matrixWindow && !matrixWindow.isDestroyed()) {
+    if (matrixWindow.isMinimized()) matrixWindow.restore();
+    matrixWindow.focus();
+    return matrixWindow;
+  }
+
+  matrixWindow = new BrowserWindow({
+    width: 1600,
+    height: 1000,
+    minWidth: 900,
+    minHeight: 600,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
+    },
+    title: 'New Matrix Window',
+    backgroundColor: '#0d1117'
+  });
+
+  matrixWindow.loadFile(path.join(__dirname, 'index.html'), {
+    query: { matrixOnly: '1' }
+  });
+
+  matrixWindow.on('closed', () => {
+    matrixWindow = null;
+  });
+
+  if (process.argv.includes('--dev')) {
+    matrixWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+
+  return matrixWindow;
 }
 
 function attachServerEvents(server) {
@@ -213,6 +753,7 @@ function attachServerEvents(server) {
   });
 
   server.on('routing-changed', (changes) => {
+    recordRouteHistoryEntries('simulator', changes);
     sendToRenderer('simulator-routing-changed', changes);
     sendToRenderer('simulator-state-updated', server.getState());
   });
@@ -251,11 +792,13 @@ function attachServerEvents(server) {
 
 function attachControllerEvents(controller) {
   controller.on('connected', (data) => {
+    resetRouteHistoryForTarget('controller', controller.getState(), controller);
     sendToRenderer('router-connected', { state: controller.getState() });
     sendToRenderer('controller-state-updated', controller.getState());
   });
 
   controller.on('disconnected', () => {
+    resetRouteHistoryForTarget('controller', null, null);
     sendToRenderer('router-disconnected');
   });
 
@@ -264,6 +807,7 @@ function attachControllerEvents(controller) {
   });
 
   controller.on('routing-changed', (changes) => {
+    recordRouteHistoryEntries('controller', changes);
     sendToRenderer('controller-routing-changed', changes);
     sendToRenderer('controller-state-updated', controller.getState());
   });
@@ -345,6 +889,7 @@ function initializeServer(protocol = 'videohub', config = {}) {
   currentProtocol = protocol;
   routerServer = createServer(protocol, config);
   attachServerEvents(routerServer);
+  resetRouteHistoryForTarget('simulator', routerServer.getState(), routerServer);
 }
 
 function setupIpcHandlers() {
@@ -415,6 +960,10 @@ function setupIpcHandlers() {
     return instance.getState().routing;
   });
 
+  ipcMain.handle('get-route-history', (event, target = 'simulator') => {
+    return routeHistory[target] || {};
+  });
+
   ipcMain.handle('set-level-name', (event, level, name, target) => {
     const instance = (target === 'controller' && controllerInstance) ? controllerInstance : routerServer;
     if ((currentProtocol === 'swp08' || currentProtocol === 'gvnative') && instance.setLevelName) {
@@ -437,20 +986,38 @@ function setupIpcHandlers() {
     return routerServer.setOutputLabel(output, label);
   });
 
-  ipcMain.handle('reset-labels-to-defaults', async () => {
-    const state = routerServer.getState();
-    const defaults = routerServer.defaultInputLabels || [];
-    const defaultOutputs = routerServer.defaultOutputLabels || [];
-    for (let i = 0; i < state.inputs; i++) {
-      routerServer.setInputLabel(i, defaults[i] || `Input ${i + 1}`);
+  ipcMain.handle('reset-labels-to-defaults', async (event, labelType = 'all', target = 'simulator', mode = 'default') => {
+    const instance = (target === 'controller' && controllerInstance && controllerInstance.isConnected())
+      ? controllerInstance
+      : routerServer;
+
+    const state = instance.getState();
+    const defaultInputs = instance.defaultInputLabels || [];
+    const defaultOutputs = instance.defaultOutputLabels || [];
+    const clearLabels = mode === 'clear';
+
+    if (labelType === 'all' || labelType === 'input') {
+      for (let i = 0; i < state.inputs; i++) {
+        await instance.setInputLabel(i, clearLabels ? '' : (defaultInputs[i] || `Input ${i + 1}`));
+      }
     }
-    for (let i = 0; i < state.outputs; i++) {
-      routerServer.setOutputLabel(i, defaultOutputs[i] || `Output ${i + 1}`);
+
+    if (labelType === 'all' || labelType === 'output') {
+      for (let i = 0; i < state.outputs; i++) {
+        await instance.setOutputLabel(i, clearLabels ? '' : (defaultOutputs[i] || `Output ${i + 1}`));
+      }
     }
-    // Clear saved labels so defaults are used
-    delete settings.inputLabels;
-    delete settings.outputLabels;
-    saveSettings();
+
+    if (instance === routerServer && !clearLabels) {
+      if (labelType === 'all' || labelType === 'input') {
+        delete settings.inputLabels;
+      }
+      if (labelType === 'all' || labelType === 'output') {
+        delete settings.outputLabels;
+      }
+      saveSettings();
+    }
+
     return true;
   });
 
@@ -483,9 +1050,12 @@ function setupIpcHandlers() {
       routerServer = createServer(config.protocol, config);
       attachServerEvents(routerServer);
       currentProtocol = config.protocol;
+      resetRouteHistoryForTarget('controller', null, null);
     } else {
       routerServer.updateConfig(config);
     }
+
+    resetRouteHistoryForTarget('simulator', routerServer.getState(), routerServer);
 
     if (wasRunning) {
       try {
@@ -530,6 +1100,8 @@ function setupIpcHandlers() {
     });
     attachServerEvents(routerServer);
     currentProtocol = protocol;
+    resetRouteHistoryForTarget('simulator', routerServer.getState(), routerServer);
+    resetRouteHistoryForTarget('controller', null, null);
 
     if (wasRunning) {
       try {
@@ -554,6 +1126,18 @@ function setupIpcHandlers() {
   // Settings
   ipcMain.handle('get-settings', () => {
     return settings;
+  });
+
+  ipcMain.handle('get-external-control-status', () => {
+    return getExternalControlStatusData();
+  });
+
+  ipcMain.handle('update-external-control-config', async (event, config) => {
+    try {
+      return await updateExternalControlConfig(config);
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   });
 
   ipcMain.handle('set-auto-start', (event, enabled) => {
@@ -648,7 +1232,13 @@ function setupIpcHandlers() {
     currentView = view;
     settings.view = view;
     saveSettings();
+    sendToRenderer('view-changed', view);
     return { success: true, view };
+  });
+
+  ipcMain.handle('open-matrix-window', async () => {
+    createMatrixWindow();
+    return { success: true };
   });
 
   // Controller handlers
@@ -697,6 +1287,7 @@ function setupIpcHandlers() {
         controllerInstance.removeAllListeners();
         controllerInstance = null;
       }
+      resetRouteHistoryForTarget('controller', null, null);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -732,7 +1323,7 @@ function setupIpcHandlers() {
 
     // Generate unique ID if not provided
     if (!salvo.id) {
-      salvo.id = `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      salvo.id = generateSalvoId();
     }
     salvo.createdAt = salvo.createdAt || new Date().toISOString();
     salvo.updatedAt = new Date().toISOString();
@@ -746,7 +1337,32 @@ function setupIpcHandlers() {
     }
 
     saveSettings();
+    emitSalvosChanged(salvo.source || 'active');
     return { success: true, salvo, salvos: settings.salvos };
+  });
+
+  ipcMain.handle('duplicate-salvo', (event, salvoId) => {
+    if (!settings.salvos) return { success: false, error: 'No salvos found' };
+
+    const sourceSalvo = settings.salvos.find(s => s.id === salvoId);
+    if (!sourceSalvo) return { success: false, error: 'Salvo not found' };
+
+    const duplicatedSalvo = {
+      ...sourceSalvo,
+      id: generateSalvoId(),
+      name: `${sourceSalvo.name} Copy`,
+      routes: Array.isArray(sourceSalvo.routes)
+        ? sourceSalvo.routes.map(route => ({ ...route }))
+        : [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    settings.salvos.push(duplicatedSalvo);
+    saveSettings();
+    emitSalvosChanged(duplicatedSalvo.source || 'active');
+
+    return { success: true, salvo: duplicatedSalvo, salvos: settings.salvos };
   });
 
   ipcMain.handle('delete-salvo', (event, salvoId) => {
@@ -757,6 +1373,7 @@ function setupIpcHandlers() {
 
     settings.salvos.splice(index, 1);
     saveSettings();
+    emitSalvosChanged(salvo.source || 'active');
     return { success: true, salvos: settings.salvos };
   });
 
@@ -765,6 +1382,7 @@ function setupIpcHandlers() {
     const ordered = orderedIds.map(id => settings.salvos.find(s => s.id === id)).filter(Boolean);
     settings.salvos = ordered;
     saveSettings();
+    emitSalvosChanged('active');
     return { success: true, salvos: settings.salvos };
   });
 
@@ -774,6 +1392,7 @@ function setupIpcHandlers() {
     if (!salvo) return { success: false };
     salvo.color = color || null;
     saveSettings();
+    emitSalvosChanged(salvo.source || 'active');
     return { success: true, salvos: settings.salvos };
   });
 
@@ -788,6 +1407,7 @@ function setupIpcHandlers() {
       : routerServer;
 
     const errors = [];
+    const appliedRoutes = [];
 
     // Apply routing changes
     if (salvo.routes) {
@@ -795,6 +1415,7 @@ function setupIpcHandlers() {
         try {
           const level = route.level || 0;
           await instance.setRoute(route.output, route.input, level);
+          appliedRoutes.push({ ...route, level });
         } catch (err) {
           errors.push(`Route ${route.output}->${route.input}: ${err.message}`);
         }
@@ -804,81 +1425,21 @@ function setupIpcHandlers() {
     return {
       success: errors.length === 0,
       errors: errors.length > 0 ? errors : undefined,
-      appliedCount: salvo.routes ? salvo.routes.length - errors.length : 0
+      appliedCount: appliedRoutes.length,
+      appliedRoutes
     };
   });
 
   ipcMain.handle('capture-salvo', (event, name, selectedOutputs, target, selectedLevel) => {
     try {
-      const instance = (target === 'controller' && controllerInstance && controllerInstance.isConnected())
-        ? controllerInstance
-        : routerServer;
+      const salvo = buildCapturedSalvo({
+        name,
+        selectedOutputs,
+        target,
+        selectedLevel
+      });
 
-      const state = instance.getState();
-      const routes = [];
-
-      // Determine which outputs to capture
-      const outputsToCapture = selectedOutputs && selectedOutputs.length > 0
-        ? selectedOutputs
-        : Array.from({ length: state.outputs }, (_, i) => i);
-
-      // For multi-level protocols, capture specified level(s)
-      const isMultiLevel = currentProtocol === 'swp08' || currentProtocol === 'gvnative';
-
-      if (isMultiLevel && state.allRouting) {
-        // If a specific level is selected, only capture that level
-        // Otherwise capture all levels
-        const levelsToCapture = selectedLevel !== null && selectedLevel !== undefined
-          ? [selectedLevel]
-          : Object.keys(state.allRouting).map(l => parseInt(l));
-
-        for (const level of levelsToCapture) {
-          const levelRouting = state.allRouting[level];
-          if (!levelRouting) continue;
-
-          for (const output of outputsToCapture) {
-            if (levelRouting[output] !== undefined) {
-              routes.push({
-                output: parseInt(output),
-                input: levelRouting[output],
-                level: parseInt(level),
-                outputLabel: state.outputLabels[output] || `Output ${parseInt(output) + 1}`,
-                inputLabel: state.inputLabels[levelRouting[output]] || `Input ${levelRouting[output] + 1}`,
-                levelName: state.levelNames?.[level] || `Level ${parseInt(level) + 1}`
-              });
-            }
-          }
-        }
-      } else {
-        for (const output of outputsToCapture) {
-          if (state.routing[output] !== undefined) {
-            routes.push({
-              output: parseInt(output),
-              input: state.routing[output],
-              level: 0,
-              outputLabel: state.outputLabels[output] || `Output ${parseInt(output) + 1}`,
-              inputLabel: state.inputLabels[state.routing[output]] || `Input ${state.routing[output] + 1}`
-            });
-          }
-        }
-      }
-
-      const salvo = {
-        id: `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: name || `Salvo ${(settings.salvos?.length || 0) + 1}`,
-        routes,
-        protocol: currentProtocol,
-        source: target,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      // Save the salvo
-      if (!settings.salvos) settings.salvos = [];
-      settings.salvos.push(salvo);
-      saveSettings();
-
-      return { success: true, salvo, salvos: settings.salvos };
+      return saveCapturedSalvo(salvo);
     } catch (err) {
       console.error('Error capturing salvo:', err);
       return { success: false, error: err.message };
@@ -951,7 +1512,7 @@ function setupIpcHandlers() {
         const name = fields[0];
         if (!salvoMap[name]) {
           salvoMap[name] = {
-            id: `salvo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
+            id: generateSalvoId(`_${i}`),
             name,
             routes: [],
             protocol: fields[7] || 'videohub',
@@ -989,6 +1550,7 @@ function setupIpcHandlers() {
       if (!settings.salvos) settings.salvos = [];
       settings.salvos.push(...imported);
       saveSettings();
+      emitSalvosChanged('active');
 
       return { success: true, count: imported.length, salvos: settings.salvos };
     } catch (err) {
@@ -998,6 +1560,7 @@ function setupIpcHandlers() {
 
   ipcMain.handle('import-salvos-resolve', (event, imported, resolution) => {
     if (!settings.salvos) settings.salvos = [];
+    emitSalvosChanged('active');
 
     const existingByName = {};
     settings.salvos.forEach(s => { existingByName[s.name] = s; });
@@ -1099,12 +1662,10 @@ function setupIpcHandlers() {
       }
     }
     saveSettings();
-    if (mainWindow) {
-      mainWindow.webContents.send('label-colors-changed', {
-        inputLabelColors: settings.inputLabelColors || {},
-        outputLabelColors: settings.outputLabelColors || {}
-      });
-    }
+    sendToRenderer('label-colors-changed', {
+      inputLabelColors: settings.inputLabelColors || {},
+      outputLabelColors: settings.outputLabelColors || {}
+    });
     return { success: true };
   });
 
@@ -1129,12 +1690,10 @@ function setupIpcHandlers() {
       });
     }
     saveSettings();
-    if (mainWindow) {
-      mainWindow.webContents.send('label-colors-changed', {
-        inputLabelColors: settings.inputLabelColors || {},
-        outputLabelColors: settings.outputLabelColors || {}
-      });
-    }
+    sendToRenderer('label-colors-changed', {
+      inputLabelColors: settings.inputLabelColors || {},
+      outputLabelColors: settings.outputLabelColors || {}
+    });
     return { success: true };
   });
 }
@@ -1277,8 +1836,18 @@ app.whenReady().then(async () => {
 
   // Initialize server with saved settings
   initializeServer(settings.protocol, settings);
+  createExternalControlServer();
   setupIpcHandlers();
   createWindow();
+
+  const externalControlConfig = getExternalControlConfig();
+  if (externalControlConfig.enabled) {
+    try {
+      await externalControlServer.start(externalControlConfig);
+    } catch (err) {
+      console.error('External control start failed:', err);
+    }
+  }
 
   // Auto-start server if enabled
   if (settings.autoStart) {
@@ -1297,6 +1866,9 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', async () => {
+  if (externalControlServer) {
+    await externalControlServer.stop().catch(() => {});
+  }
   if (routerServer) {
     await routerServer.stop();
   }
@@ -1309,6 +1881,9 @@ app.on('window-all-closed', async () => {
 });
 
 app.on('before-quit', async () => {
+  if (externalControlServer) {
+    await externalControlServer.stop().catch(() => {});
+  }
   if (routerServer) {
     await routerServer.stop();
   }
