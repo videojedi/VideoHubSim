@@ -23,17 +23,20 @@ contextBridge.exposeInMainWorld('videoHub', {
   setOutputLabel: (output, label, target) => ipcRenderer.invoke('set-output-label', output, label, target),
   setLock: (output, lock, target) => ipcRenderer.invoke('set-lock', output, lock, target),
   getRoutingForLevel: (level, target) => ipcRenderer.invoke('get-routing-for-level', level, target),
+  getRouteHistory: (target) => ipcRenderer.invoke('get-route-history', target),
   setLevelName: (level, name, target) => ipcRenderer.invoke('set-level-name', level, name, target),
 
   // Simulator configuration
   updateConfig: (config) => ipcRenderer.invoke('update-config', config),
   switchProtocol: (protocol) => ipcRenderer.invoke('switch-protocol', protocol),
   getSettings: () => ipcRenderer.invoke('get-settings'),
+  getExternalControlStatus: () => ipcRenderer.invoke('get-external-control-status'),
+  updateExternalControlConfig: (config) => ipcRenderer.invoke('update-external-control-config', config),
   setAutoStart: (enabled) => ipcRenderer.invoke('set-auto-start', enabled),
   setAutoConnect: (enabled) => ipcRenderer.invoke('set-auto-connect', enabled),
   setAutoReconnect: (enabled) => ipcRenderer.invoke('set-auto-reconnect', enabled),
   setAutoProtect: (enabled) => ipcRenderer.invoke('set-auto-protect', enabled),
-  resetLabelsToDefaults: () => ipcRenderer.invoke('reset-labels-to-defaults'),
+  resetLabelsToDefaults: (type = 'all', target, mode = 'default') => ipcRenderer.invoke('reset-labels-to-defaults', type, target, mode),
 
   // Router history
   getRouterHistory: () => ipcRenderer.invoke('get-router-history'),
@@ -43,6 +46,7 @@ contextBridge.exposeInMainWorld('videoHub', {
   // Salvos
   getSalvos: () => ipcRenderer.invoke('get-salvos'),
   saveSalvo: (salvo) => ipcRenderer.invoke('save-salvo', salvo),
+  duplicateSalvo: (salvoId) => ipcRenderer.invoke('duplicate-salvo', salvoId),
   deleteSalvo: (salvoId) => ipcRenderer.invoke('delete-salvo', salvoId),
   reorderSalvos: (orderedIds) => ipcRenderer.invoke('reorder-salvos', orderedIds),
   setSalvoColor: (salvoId, color) => ipcRenderer.invoke('set-salvo-color', salvoId, color),
@@ -67,10 +71,12 @@ contextBridge.exposeInMainWorld('videoHub', {
   // Update checker
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  openMatrixWindow: () => ipcRenderer.invoke('open-matrix-window'),
 
   // View control (what's displayed - doesn't affect functionality)
   getView: () => ipcRenderer.invoke('get-view'),
   setView: (view) => ipcRenderer.invoke('set-view', view),
+  onViewChanged: (callback) => ipcRenderer.on('view-changed', (_, view) => callback(view)),
 
   // Simulator event listeners
   onServerStarted: (callback) => ipcRenderer.on('server-started', (_, port) => callback(port)),
@@ -83,6 +89,9 @@ contextBridge.exposeInMainWorld('videoHub', {
   onSimulatorInputLabelsChanged: (callback) => ipcRenderer.on('simulator-input-labels-changed', (_, changes) => callback(changes)),
   onSimulatorOutputLabelsChanged: (callback) => ipcRenderer.on('simulator-output-labels-changed', (_, changes) => callback(changes)),
   onSimulatorStateUpdated: (callback) => ipcRenderer.on('simulator-state-updated', (_, state) => callback(state)),
+  onRouteHistoryUpdated: (callback) => ipcRenderer.on('route-history-updated', (_, data) => callback(data)),
+  onSalvosChanged: (callback) => ipcRenderer.on('salvos-changed', (_, data) => callback(data)),
+  onExternalControlStatusChanged: (callback) => ipcRenderer.on('external-control-status-changed', (_, data) => callback(data)),
   onCommandReceived: (callback) => ipcRenderer.on('command-received', (_, data) => callback(data)),
 
   // Controller event listeners
