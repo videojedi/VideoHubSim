@@ -3143,6 +3143,7 @@
       input.value = labelValue;
       input.dataset.type = type;
       input.dataset.index = index;
+      input.dataset.savedValue = labelValue;
       input.tabIndex = index + 1; // Enable Tab navigation
 
       // Disable if in controller mode and not connected
@@ -3153,6 +3154,7 @@
 
       // Event handlers
       input.addEventListener('change', handleLabelChange);
+      input.addEventListener('blur', handleLabelChange);
       input.addEventListener('keydown', handleLabelKeydown);
 
       // Handle right-click on input field - use custom context menu
@@ -3205,6 +3207,12 @@
       const index = parseInt(input.dataset.index);
       const value = input.value;
 
+      // Windows does not consistently dispatch `change` before focus moves to
+      // another dynamically-created control. Blur and keyboard navigation also
+      // call this function, so avoid sending the same value more than once.
+      if (value === input.dataset.savedValue) return;
+      input.dataset.savedValue = value;
+
       if (type === 'input') {
         await window.videoHub.setInputLabel(index, value, currentView);
       } else {
@@ -3212,7 +3220,7 @@
       }
     }
 
-    function handleLabelKeydown(e) {
+    async function handleLabelKeydown(e) {
       const input = e.target;
       const type = input.dataset.type;
       const index = parseInt(input.dataset.index);
@@ -3220,6 +3228,7 @@
 
       if (e.key === 'Tab') {
         e.preventDefault();
+        await handleLabelChange({ target: input });
         if (e.shiftKey) {
           // Shift+Tab: go up in the same column, wrap to bottom if at top
           if (index > 0) {
@@ -3239,15 +3248,18 @@
         }
       } else if (e.key === 'ArrowDown' && !e.shiftKey) {
         e.preventDefault();
+        await handleLabelChange({ target: input });
         focusLabelInput(type, Math.min(index + 1, max - 1));
       } else if (e.key === 'ArrowUp' && !e.shiftKey) {
         e.preventDefault();
+        await handleLabelChange({ target: input });
         focusLabelInput(type, Math.max(index - 1, 0));
       } else if (e.key === 'Escape') {
         clearLabelSelection();
         input.blur();
       } else if (e.key === 'Enter') {
         e.preventDefault();
+        await handleLabelChange({ target: input });
         if (index < max - 1) {
           focusLabelInput(type, index + 1);
         }
@@ -5022,6 +5034,9 @@
         log(`Route changed: Output ${c.output + 1} ← Input ${c.input + 1}${levelInfo}`, 'info');
       });
       updateRoutingIncremental(changes);
+      if (document.getElementById('salvosPanel').classList.contains('active')) {
+        renderSalvoDestinations();
+      }
       updateBpsActiveStates();
     }
 
@@ -5336,6 +5351,10 @@
 
       document.body.appendChild(overlay);
 
+      const nameInput = overlay.querySelector('#salvoEditName');
+      nameInput.focus();
+      nameInput.select();
+
       let currentColor = selectedColor;
       overlay.querySelectorAll('.bps-color-swatch').forEach(swatch => {
         swatch.addEventListener('click', () => {
@@ -5345,8 +5364,7 @@
         });
       });
 
-      overlay.addEventListener('click', async (e) => {
-        const action = e.target.dataset.action;
+      const handleSalvoEditAction = async (action) => {
         if (!action) return;
 
         if (action === 'cancel') {
@@ -5379,6 +5397,20 @@
           overlay.remove();
           return;
         }
+      };
+
+      overlay.addEventListener('click', (e) => {
+        handleSalvoEditAction(e.target.dataset.action);
+      });
+
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSalvoEditAction('save');
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          handleSalvoEditAction('cancel');
+        }
       });
 
       overlay.addEventListener('mousedown', (e) => {
@@ -5405,7 +5437,6 @@
         const card = document.createElement('div');
         card.className = 'salvo-card';
         card.dataset.salvoId = salvo.id;
-        card.draggable = true;
         if (salvo.color) {
           card.style.borderLeftColor = salvo.color;
         }
@@ -5426,6 +5457,7 @@
         const name = document.createElement('span');
         name.className = 'salvo-name';
         name.textContent = (salvo.protected ? '🔒 ' : '') + salvo.name;
+        name.title = 'Double-click to edit';
 
         const meta = document.createElement('span');
         meta.className = 'salvo-meta';
@@ -5520,6 +5552,12 @@
         deleteBtn.textContent = 'Delete';
         deleteBtn.addEventListener('click', () => deleteSalvo(salvo.id));
 
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => showSalvoEditModal(salvo));
+
+        actions.appendChild(editBtn);
         actions.appendChild(recallBtn);
         actions.appendChild(deleteBtn);
 
@@ -5534,13 +5572,16 @@
           showSalvoEditModal(salvo);
         });
 
+        name.addEventListener('dblclick', () => showSalvoEditModal(salvo));
+
         // Drag-and-drop reorder
-        card.addEventListener('dragstart', (e) => {
+        dragHandle.draggable = true;
+        dragHandle.addEventListener('dragstart', (e) => {
           card.classList.add('dragging');
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', salvo.id);
         });
-        card.addEventListener('dragend', () => {
+        dragHandle.addEventListener('dragend', () => {
           card.classList.remove('dragging');
           salvosList.querySelectorAll('.salvo-card').forEach(c => c.classList.remove('drag-over'));
         });
